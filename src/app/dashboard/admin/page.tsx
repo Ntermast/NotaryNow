@@ -10,6 +10,7 @@ import { Calendar, Users, Briefcase, ShieldCheck, BellIcon, SettingsIcon } from 
 import { Sidebar } from '@/components/layout/sidebar';
 import { StatsCard } from '@/components/dashboard/stats-card';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
@@ -19,7 +20,8 @@ export default function AdminDashboard() {
     totalUsers: 0,
     totalNotaries: 0,
     pendingApprovals: 0,
-    totalAppointments: 0
+    totalAppointments: 0,
+    pendingCertifications: 0
   });
   const [notaries, setNotaries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,58 +35,85 @@ export default function AdminDashboard() {
     }
   }, [status, session, router]);
 
-  // Mock data for demonstration
+  // Fetch real data from API endpoints
   useEffect(() => {
-    if (status === "authenticated") {
-      // In a real app, this would fetch from API endpoints
-      setStatistics({
-        totalUsers: 42,
-        totalNotaries: 15,
-        pendingApprovals: 3,
-        totalAppointments: 156
+    async function fetchAdminData() {
+      if (status === "authenticated" && session.user.role === "ADMIN") {
+        try {
+          // Fetch statistics
+          const statsResponse = await fetch('/api/admin/stats');
+          if (!statsResponse.ok) throw new Error('Failed to fetch statistics');
+          const statsData = await statsResponse.json();
+
+          setStatistics({
+            totalUsers: statsData.totalUsers || 0,
+            totalNotaries: statsData.totalNotaries || 0,
+            pendingApprovals: statsData.pendingApprovals || 0,
+            totalAppointments: statsData.totalAppointments || 0,
+            pendingCertifications: statsData.pendingCertifications || 0
+          });
+
+          // Fetch notaries
+          const notariesResponse = await fetch('/api/admin/notaries');
+          if (!notariesResponse.ok) throw new Error('Failed to fetch notaries');
+          const notariesData = await notariesResponse.json();
+
+          // Format notary data
+          const formattedNotaries = notariesData.map(notary => ({
+            id: notary.id,
+            name: notary.name,
+            email: notary.email,
+            isApproved: notary.isApproved,
+            location: notary.location,
+            joinDate: new Date(notary.createdAt).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            }),
+            servicesCount: notary.services.length
+          }));
+
+          setNotaries(formattedNotaries);
+          setLoading(false);
+        } catch (error) {
+          console.error('Error fetching admin data:', error);
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchAdminData();
+  }, [status, session]);
+
+  const handleApproveNotary = async (id) => {
+    try {
+      const response = await fetch(`/api/admin/notaries/approve/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
-      setNotaries([
-        {
-          id: "1",
-          name: "John Smith",
-          email: "john.smith@example.com",
-          isApproved: true,
-          location: "Manhattan, NY",
-          joinDate: "Mar 2, 2025",
-          servicesCount: 3
-        },
-        {
-          id: "2",
-          name: "Sarah Johnson",
-          email: "sarah.johnson@example.com",
-          isApproved: false,
-          location: "Brooklyn, NY",
-          joinDate: "Mar 5, 2025",
-          servicesCount: 4
-        },
-        {
-          id: "3",
-          name: "Michael Brown",
-          email: "michael.brown@example.com",
-          isApproved: true,
-          location: "Queens, NY",
-          joinDate: "Mar 1, 2025",
-          servicesCount: 5
-        }
-      ]);
+      if (!response.ok) throw new Error('Failed to approve notary');
 
-      setLoading(false);
+      // Update local state
+      setNotaries(prev =>
+        prev.map(notary =>
+          notary.id === id ? { ...notary, isApproved: true } : notary
+        )
+      );
+
+      // Update the statistics
+      setStatistics(prev => ({
+        ...prev,
+        pendingApprovals: Math.max(0, prev.pendingApprovals - 1)
+      }));
+
+      toast.success('Notary approved successfully');
+    } catch (error) {
+      console.error('Error approving notary:', error);
+      toast.error('Failed to approve notary');
     }
-  }, [status]);
-
-  const handleApproveNotary = (id) => {
-    // In a real app, would call API to approve notary
-    setNotaries(prev => 
-      prev.map(notary => 
-        notary.id === id ? { ...notary, isApproved: true } : notary
-      )
-    );
   };
 
   if (status === "loading" || loading) {
@@ -102,6 +131,7 @@ export default function AdminDashboard() {
           userRole="admin"
           userName={session.user.name}
           userEmail={session.user.email}
+          pendingCount={statistics.pendingApprovals + statistics.pendingCertifications}
         />
 
         <div className="md:pl-64 flex flex-col flex-1">
@@ -154,15 +184,26 @@ export default function AdminDashboard() {
               <div className="mt-8">
                 <h2 className="text-lg font-medium mb-4">Quick Actions</h2>
                 <div className="grid gap-4 md:grid-cols-3">
-                  <Button className="h-auto py-6 flex flex-col items-center justify-center gap-2">
+                  <Button
+                    className="h-auto py-6 flex flex-col items-center justify-center gap-2"
+                    onClick={() => router.push('/dashboard/admin/users')}
+                  >
                     <Users className="h-6 w-6" />
                     <span>Manage Users</span>
                   </Button>
-                  <Button variant="outline" className="h-auto py-6 flex flex-col items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    className="h-auto py-6 flex flex-col items-center justify-center gap-2"
+                    onClick={() => router.push('/dashboard/admin/services')}
+                  >
                     <Briefcase className="h-6 w-6" />
                     <span>Manage Services</span>
                   </Button>
-                  <Button variant="outline" className="h-auto py-6 flex flex-col items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    className="h-auto py-6 flex flex-col items-center justify-center gap-2"
+                    onClick={() => router.push('/dashboard/admin/certifications')}
+                  >
                     <ShieldCheck className="h-6 w-6" />
                     <span>Review Certifications</span>
                   </Button>
