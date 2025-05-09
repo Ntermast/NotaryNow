@@ -1,9 +1,22 @@
-import { useState } from 'react';
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Users, Briefcase, FileCheck, Settings, BarChart3 } from 'lucide-react';
+import {
+  Calendar,
+  Users,
+  Briefcase,
+  FileCheck,
+  Settings,
+  BarChart3,
+  FileText,
+  LogOut
+} from 'lucide-react';
+import { signOut } from 'next-auth/react';
 
 type SidebarProps = {
   userRole: 'admin' | 'notary' | 'customer' | 'secretary';
@@ -13,19 +26,34 @@ type SidebarProps = {
 };
 
 export function Sidebar({ userRole, userName, userEmail, pendingCount = 0 }: SidebarProps) {
+  const pathname = usePathname();
   const [activeItem, setActiveItem] = useState('dashboard');
-  
+
+  // Update active item based on the current URL path
+  useEffect(() => {
+    const path = pathname.split('/');
+    if (path.length > 3) {
+      setActiveItem(path[3]); // dashboard/[role]/[section]
+    } else {
+      setActiveItem('dashboard');
+    }
+  }, [pathname]);
+
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('');
   };
-  
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/' });
+  };
+
   return (
     <div className="hidden md:flex w-64 flex-col fixed inset-y-0 border-r bg-white">
       <div className="flex h-16 items-center border-b px-6">
-        <div className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <Calendar className="h-6 w-6 text-primary" />
           <span className="text-xl font-bold">NotaryNow</span>
-        </div>
+        </Link>
       </div>
       <div className="flex flex-col flex-1 pt-5 pb-4 overflow-y-auto">
         <div className="px-4 mb-5">
@@ -34,10 +62,9 @@ export function Sidebar({ userRole, userName, userEmail, pendingCount = 0 }: Sid
           </Badge>
         </div>
         <nav className="flex-1 px-3 space-y-1">
-          <Button 
-            variant={activeItem === "dashboard" ? "default" : "ghost"} 
+          <Button
+            variant={activeItem === "dashboard" || pathname === `/dashboard/${userRole}` ? "default" : "ghost"}
             className="w-full justify-start"
-            onClick={() => setActiveItem("dashboard")}
             asChild
           >
             <Link href={`/dashboard/${userRole}`}>
@@ -45,12 +72,11 @@ export function Sidebar({ userRole, userName, userEmail, pendingCount = 0 }: Sid
               Dashboard
             </Link>
           </Button>
-          
+
           {(userRole === 'admin' || userRole === 'secretary') && (
-            <Button 
-              variant={activeItem === "notaries" ? "default" : "ghost"} 
+            <Button
+              variant={activeItem === "notaries" ? "default" : "ghost"}
               className="w-full justify-start"
-              onClick={() => setActiveItem("notaries")}
               asChild
             >
               <Link href={`/dashboard/${userRole}/notaries`}>
@@ -62,12 +88,11 @@ export function Sidebar({ userRole, userName, userEmail, pendingCount = 0 }: Sid
               </Link>
             </Button>
           )}
-          
+
           {(userRole === 'admin' || userRole === 'secretary') && (
-            <Button 
-              variant={activeItem === "customers" ? "default" : "ghost"} 
+            <Button
+              variant={activeItem === "customers" ? "default" : "ghost"}
               className="w-full justify-start"
-              onClick={() => setActiveItem("customers")}
               asChild
             >
               <Link href={`/dashboard/${userRole}/customers`}>
@@ -76,11 +101,10 @@ export function Sidebar({ userRole, userName, userEmail, pendingCount = 0 }: Sid
               </Link>
             </Button>
           )}
-          
-          <Button 
-            variant={activeItem === "appointments" ? "default" : "ghost"} 
+
+          <Button
+            variant={activeItem === "appointments" ? "default" : "ghost"}
             className="w-full justify-start"
-            onClick={() => setActiveItem("appointments")}
             asChild
           >
             <Link href={`/dashboard/${userRole}/appointments`}>
@@ -88,12 +112,24 @@ export function Sidebar({ userRole, userName, userEmail, pendingCount = 0 }: Sid
               Appointments
             </Link>
           </Button>
-          
-          {(userRole === 'admin' || userRole === 'notary') && (
-            <Button 
-              variant={activeItem === "reports" ? "default" : "ghost"} 
+
+          {userRole === 'customer' && (
+            <Button
+              variant={activeItem === "documents" ? "default" : "ghost"}
               className="w-full justify-start"
-              onClick={() => setActiveItem("reports")}
+              asChild
+            >
+              <Link href={`/dashboard/${userRole}/documents`}>
+                <FileText className="mr-3 h-5 w-5" />
+                My Documents
+              </Link>
+            </Button>
+          )}
+
+          {(userRole === 'admin' || userRole === 'notary') && (
+            <Button
+              variant={activeItem === "reports" ? "default" : "ghost"}
+              className="w-full justify-start"
               asChild
             >
               <Link href={`/dashboard/${userRole}/reports`}>
@@ -102,17 +138,25 @@ export function Sidebar({ userRole, userName, userEmail, pendingCount = 0 }: Sid
               </Link>
             </Button>
           )}
-          
-          <Button 
-            variant={activeItem === "settings" ? "default" : "ghost"} 
+
+          <Button
+            variant={activeItem === "settings" ? "default" : "ghost"}
             className="w-full justify-start"
-            onClick={() => setActiveItem("settings")}
             asChild
           >
             <Link href={`/dashboard/${userRole}/settings`}>
               <Settings className="mr-3 h-5 w-5" />
               Settings
             </Link>
+          </Button>
+
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 mt-6"
+            onClick={handleLogout}
+          >
+            <LogOut className="mr-3 h-5 w-5" />
+            Sign Out
           </Button>
         </nav>
       </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import getServerSession from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 
 export async function GET(request: NextRequest) {
@@ -86,6 +86,15 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    console.log("Creating appointment with:", {
+      userId,
+      notaryId,
+      serviceId,
+      scheduledTime,
+      duration,
+      notes
+    });
 
     // Get service price
     const service = await prisma.service.findUnique({

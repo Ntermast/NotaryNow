@@ -84,7 +84,7 @@ export function NotaryCard({ notary }) {
           
           <Dialog>
             <DialogTrigger asChild>
-              <Button 
+              <Button
                 className="w-full"
                 onClick={handleBooking}
               >
@@ -98,7 +98,11 @@ export function NotaryCard({ notary }) {
                   Select a date and time to schedule your appointment with {notary.name}.
                 </DialogDescription>
               </DialogHeader>
-              <BookingForm notary={notary} />
+              <BookingForm
+                notary={notary}
+                onClose={() => document.getElementById('close-dialog-btn')?.click()}
+              />
+              <button id="close-dialog-btn" className="hidden" aria-hidden="true"></button>
             </DialogContent>
           </Dialog>
           

@@ -10,7 +10,7 @@ import { format, addDays } from 'date-fns';
 export function BookingForm({ notary, onClose }) {
   const { data: session, status } = useSession();
   const router = useRouter();
-
+  
   const [bookingStage, setBookingStage] = useState(1); // 1: date & time, 2: service, 3: confirmation
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
@@ -31,7 +31,7 @@ export function BookingForm({ notary, onClose }) {
 
   // Available time slots
   const timeSlots = [
-    "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM",
+    "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", 
     "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM",
     "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM",
     "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM"
@@ -45,14 +45,14 @@ export function BookingForm({ notary, onClose }) {
         const servicesResponse = await fetch('/api/services');
         if (!servicesResponse.ok) throw new Error('Failed to fetch services');
         const allServices = await servicesResponse.json();
-
+        
         // Filter services to only those the notary offers
-        const notaryServices = allServices.filter(service =>
+        const notaryServices = allServices.filter(service => 
           notary.services.includes(service.name)
         );
-
+        
         setServices(notaryServices);
-
+        
         // Set the first service as selected by default if available
         if (notaryServices.length > 0) {
           setSelectedService(notaryServices[0].name);
@@ -62,7 +62,7 @@ export function BookingForm({ notary, onClose }) {
         console.error('Error fetching services:', error);
       }
     }
-
+    
     fetchServices();
   }, [notary.services]);
 
@@ -81,17 +81,38 @@ export function BookingForm({ notary, onClose }) {
     }
 
     setLoading(true);
-
+    
     try {
-      // Combine date and time
-      const [hours, minutes] = selectedTime.match(/(\d+):(\d+)/).slice(1, 3);
-      const period = selectedTime.includes('PM') ? 'PM' : 'AM';
-      let hour = parseInt(hours);
-      if (period === 'PM' && hour !== 12) hour += 12;
-      if (period === 'AM' && hour === 12) hour = 0;
-
-      const scheduledTime = new Date(`${selectedDate}T${hour.toString().padStart(2, '0')}:${minutes}:00`);
-
+      console.log("Booking with:", { 
+        selectedDate, 
+        selectedTime, 
+        notaryId: notary.id, 
+        serviceId: selectedServiceId 
+      });
+      
+      // Parse the time string to extract hours and minutes
+      const timeMatch = selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!timeMatch) {
+        throw new Error(`Invalid time format: ${selectedTime}`);
+      }
+      
+      let hours = parseInt(timeMatch[1]);
+      const minutes = timeMatch[2];
+      const period = timeMatch[3].toUpperCase();
+      
+      // Convert to 24-hour format
+      if (period === 'PM' && hours !== 12) {
+        hours += 12;
+      } else if (period === 'AM' && hours === 12) {
+        hours = 0;
+      }
+      
+      // Create a date object with the correct local time
+      const date = new Date(selectedDate);
+      date.setHours(hours, parseInt(minutes), 0, 0);
+      
+      console.log("Calculated date object:", date);
+      
       // Create appointment
       const response = await fetch('/api/appointments', {
         method: 'POST',
@@ -101,21 +122,25 @@ export function BookingForm({ notary, onClose }) {
         body: JSON.stringify({
           notaryId: notary.id,
           serviceId: selectedServiceId,
-          scheduledTime: scheduledTime.toISOString(),
+          scheduledTime: date.toISOString(),
           duration: 60, // Default to 1 hour
           notes: '',
         }),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to book appointment');
+        const errorData = await response.json();
+        console.error("Server response:", errorData);
+        throw new Error(errorData.error || 'Failed to book appointment');
       }
+      
+      const appointment = await response.json();
+      console.log("Appointment created:", appointment);
 
       // Show success message
       setBookingSuccess(true);
       toast.success('Appointment booked successfully!');
-
+      
       // Redirect to dashboard after a delay
       setTimeout(() => {
         router.push('/dashboard/customer');
@@ -167,7 +192,7 @@ export function BookingForm({ notary, onClose }) {
               </Button>
             ))}
           </div>
-
+          
           <Label className="mb-2 block">Select Time</Label>
           <div className="grid grid-cols-4 gap-2">
             {timeSlots.map((time) => (
@@ -181,10 +206,10 @@ export function BookingForm({ notary, onClose }) {
               </Button>
             ))}
           </div>
-
+          
           <div className="mt-4 flex justify-end">
-            <Button
-              type="button"
+            <Button 
+              type="button" 
               onClick={() => setBookingStage(2)}
               disabled={!selectedDate || !selectedTime}
             >
@@ -200,8 +225,8 @@ export function BookingForm({ notary, onClose }) {
           <Label className="mb-2 block">Select Service</Label>
           <div className="space-y-2">
             {services.map((service) => (
-              <div
-                key={service.id}
+              <div 
+                key={service.id} 
                 className={`p-4 border rounded-lg cursor-pointer ${selectedService === service.name ? 'border-primary bg-primary/5' : 'hover:bg-gray-50'}`}
                 onClick={() => {
                   setSelectedService(service.name);
@@ -222,16 +247,16 @@ export function BookingForm({ notary, onClose }) {
               </div>
             ))}
           </div>
-
+          
           <div className="mt-4 flex justify-between">
-            <Button
+            <Button 
               variant="outline"
               onClick={() => setBookingStage(1)}
             >
               Back
             </Button>
-            <Button
-              type="button"
+            <Button 
+              type="button" 
               onClick={() => setBookingStage(3)}
               disabled={!selectedService}
             >
@@ -275,23 +300,23 @@ export function BookingForm({ notary, onClose }) {
               </div>
             </div>
           </div>
-
+          
           {status !== 'authenticated' && (
             <div className="mb-4 p-3 border border-yellow-200 bg-yellow-50 rounded-md text-sm text-yellow-800">
               You'll need to sign in before confirming your booking.
             </div>
           )}
-
+          
           <div className="mt-4 flex justify-between">
-            <Button
+            <Button 
               variant="outline"
               onClick={() => setBookingStage(2)}
               disabled={loading}
             >
               Back
             </Button>
-            <Button
-              type="button"
+            <Button 
+              type="button" 
               onClick={handleBookingSubmit}
               disabled={loading}
             >

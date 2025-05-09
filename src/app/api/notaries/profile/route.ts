@@ -1,7 +1,7 @@
 // src/app/api/notary/profile/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import getServerSession from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/route";
 
 export async function GET(request: NextRequest) {

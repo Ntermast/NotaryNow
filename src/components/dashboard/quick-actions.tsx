@@ -13,13 +13,13 @@ export function QuickActions() {
             <span>Find a Notary</span>
           </Button>
         </Link>
-        <Link href="/appointments/schedule">
+        <Link href="/notaries">
           <Button variant="outline" className="h-auto py-6 w-full flex flex-col items-center justify-center gap-2">
             <Plus className="h-6 w-6" />
             <span>Schedule Appointment</span>
           </Button>
         </Link>
-        <Link href="/documents">
+        <Link href="/dashboard/customer/documents">
           <Button variant="outline" className="h-auto py-6 w-full flex flex-col items-center justify-center gap-2">
             <FileText className="h-6 w-6" />
             <span>Upload Documents</span>
