@@ -1,52 +1,152 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Calendar, Clock } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { format, addDays } from 'date-fns';
 
-export function BookingForm({ notary }) {
+export function BookingForm({ notary, onClose }) {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
   const [bookingStage, setBookingStage] = useState(1); // 1: date & time, 2: service, 3: confirmation
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
-  const [selectedService, setSelectedService] = useState(notary.services[0]);
+  const [selectedService, setSelectedService] = useState(null);
+  const [selectedServiceId, setSelectedServiceId] = useState(null);
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
 
-  // Available dates (normally would come from API)
-  const availableDates = [
-    { display: 'Mon, Mar 3', value: '2025-03-03' },
-    { display: 'Tue, Mar 4', value: '2025-03-04' },
-    { display: 'Wed, Mar 5', value: '2025-03-05' },
-    { display: 'Thu, Mar 6', value: '2025-03-06' }
-  ];
-
-  // Available time slots (would normally come from API based on selected date)
-  const timeSlots = [
-    "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", 
-    "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM",
-  ];
-
-  // Service prices (simplified example)
-  const getServicePrice = (service) => {
-    const prices = {
-      'Deed Notarization': 45,
-      'Power of Attorney': 65,
-      'Mortgage Signing': 120,
-      'Affidavit': 35,
-      'Will & Trust': 95,
-      'Certified Copies': 25
+  // Generate available dates (next 14 days)
+  const availableDates = Array.from({ length: 14 }, (_, i) => {
+    const date = addDays(new Date(), i + 1);
+    return {
+      display: format(date, 'EEE, MMM d'),
+      value: format(date, 'yyyy-MM-dd')
     };
-    return prices[service] || 45;
+  });
+
+  // Available time slots
+  const timeSlots = [
+    "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM",
+    "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM",
+    "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM",
+    "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM"
+  ];
+
+  // Fetch notary's services with prices
+  useEffect(() => {
+    async function fetchServices() {
+      try {
+        // First, fetch all available services
+        const servicesResponse = await fetch('/api/services');
+        if (!servicesResponse.ok) throw new Error('Failed to fetch services');
+        const allServices = await servicesResponse.json();
+
+        // Filter services to only those the notary offers
+        const notaryServices = allServices.filter(service =>
+          notary.services.includes(service.name)
+        );
+
+        setServices(notaryServices);
+
+        // Set the first service as selected by default if available
+        if (notaryServices.length > 0) {
+          setSelectedService(notaryServices[0].name);
+          setSelectedServiceId(notaryServices[0].id);
+        }
+      } catch (error) {
+        console.error('Error fetching services:', error);
+      }
+    }
+
+    fetchServices();
+  }, [notary.services]);
+
+  // Get price for a service
+  const getServicePrice = (serviceName) => {
+    const service = services.find(s => s.name === serviceName);
+    return service ? service.basePrice : 0;
   };
 
-  const handleBookingSubmit = () => {
-    // In a real application, this would send the booking to your API
-    console.log('Booking submitted:', {
-      notaryId: notary.id,
-      date: selectedDate,
-      time: selectedTime,
-      service: selectedService
-    });
-    // Close dialog or show success message
+  const handleBookingSubmit = async () => {
+    if (status !== 'authenticated') {
+      // Redirect to login if not authenticated
+      toast.error('Please sign in to book an appointment');
+      router.push('/auth/signin');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Combine date and time
+      const [hours, minutes] = selectedTime.match(/(\d+):(\d+)/).slice(1, 3);
+      const period = selectedTime.includes('PM') ? 'PM' : 'AM';
+      let hour = parseInt(hours);
+      if (period === 'PM' && hour !== 12) hour += 12;
+      if (period === 'AM' && hour === 12) hour = 0;
+
+      const scheduledTime = new Date(`${selectedDate}T${hour.toString().padStart(2, '0')}:${minutes}:00`);
+
+      // Create appointment
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          notaryId: notary.id,
+          serviceId: selectedServiceId,
+          scheduledTime: scheduledTime.toISOString(),
+          duration: 60, // Default to 1 hour
+          notes: '',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to book appointment');
+      }
+
+      // Show success message
+      setBookingSuccess(true);
+      toast.success('Appointment booked successfully!');
+
+      // Redirect to dashboard after a delay
+      setTimeout(() => {
+        router.push('/dashboard/customer');
+        if (onClose) onClose();
+      }, 3000);
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+      toast.error(error.message || 'Failed to book appointment');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (bookingSuccess) {
+    return (
+      <div className="py-8 text-center">
+        <div className="mb-4 mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+        <h3 className="text-xl font-medium mb-2">Booking Confirmed!</h3>
+        <p className="text-gray-500 mb-4">
+          Your appointment has been scheduled. You'll receive a confirmation shortly.
+        </p>
+        <p className="text-sm text-gray-400">
+          Redirecting to your dashboard...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="py-4">
@@ -67,7 +167,7 @@ export function BookingForm({ notary }) {
               </Button>
             ))}
           </div>
-          
+
           <Label className="mb-2 block">Select Time</Label>
           <div className="grid grid-cols-4 gap-2">
             {timeSlots.map((time) => (
@@ -81,10 +181,10 @@ export function BookingForm({ notary }) {
               </Button>
             ))}
           </div>
-          
+
           <div className="mt-4 flex justify-end">
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               onClick={() => setBookingStage(2)}
               disabled={!selectedDate || !selectedTime}
             >
@@ -99,42 +199,41 @@ export function BookingForm({ notary }) {
         <>
           <Label className="mb-2 block">Select Service</Label>
           <div className="space-y-2">
-            {notary.services.map((service) => (
-              <div 
-                key={service} 
-                className={`p-4 border rounded-lg cursor-pointer ${selectedService === service ? 'border-primary bg-primary/5' : 'hover:bg-gray-50'}`}
-                onClick={() => setSelectedService(service)}
+            {services.map((service) => (
+              <div
+                key={service.id}
+                className={`p-4 border rounded-lg cursor-pointer ${selectedService === service.name ? 'border-primary bg-primary/5' : 'hover:bg-gray-50'}`}
+                onClick={() => {
+                  setSelectedService(service.name);
+                  setSelectedServiceId(service.id);
+                }}
               >
                 <div className="flex justify-between items-center">
                   <div>
-                    <h4 className="font-medium">{service}</h4>
+                    <h4 className="font-medium">{service.name}</h4>
                     <p className="text-sm text-gray-500">
-                      {service === 'Deed Notarization' && 'Notarization of property deeds'}
-                      {service === 'Power of Attorney' && 'Legal document authorization'}
-                      {service === 'Mortgage Signing' && 'Mortgage document signing'}
-                      {service === 'Affidavit' && 'Written sworn statement'}
-                      {service === 'Will & Trust' && 'Estate planning documents'}
-                      {service === 'Certified Copies' && 'Certified document copies'}
+                      {service.description}
                     </p>
                   </div>
                   <div className="font-bold">
-                    ${getServicePrice(service)}
+                    ${service.basePrice}
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          
+
           <div className="mt-4 flex justify-between">
-            <Button 
+            <Button
               variant="outline"
               onClick={() => setBookingStage(1)}
             >
               Back
             </Button>
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               onClick={() => setBookingStage(3)}
+              disabled={!selectedService}
             >
               Next
             </Button>
@@ -176,19 +275,27 @@ export function BookingForm({ notary }) {
               </div>
             </div>
           </div>
-          
+
+          {status !== 'authenticated' && (
+            <div className="mb-4 p-3 border border-yellow-200 bg-yellow-50 rounded-md text-sm text-yellow-800">
+              You'll need to sign in before confirming your booking.
+            </div>
+          )}
+
           <div className="mt-4 flex justify-between">
-            <Button 
+            <Button
               variant="outline"
               onClick={() => setBookingStage(2)}
+              disabled={loading}
             >
               Back
             </Button>
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               onClick={handleBookingSubmit}
+              disabled={loading}
             >
-              Confirm Booking
+              {loading ? 'Processing...' : 'Confirm Booking'}
             </Button>
           </div>
         </>

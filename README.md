@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NotaryNow - Online Notary Services Platform
+
+NotaryNow is a web application that connects customers with professional notaries. It allows customers to search for notaries, book appointments, and manage their notarization needs. Notaries can manage their profiles, services, and appointments through a dedicated dashboard.
+
+## Features
+
+- **User Authentication** - Secure login and registration system with role-based access
+- **Notary Search** - Find notaries by location, service, and availability
+- **Appointment Booking** - Schedule notary appointments with real-time availability
+- **Dashboard Management** - Separate dashboards for customers, notaries, and administrators
+- **Reviews System** - Leave and view reviews for notaries
+- **Service Management** - Notaries can add, update, and remove their offered services
+
+## Tech Stack
+
+- **Frontend**: Next.js 15, React 19, Tailwind CSS, shadcn/ui
+- **Backend**: Next.js API Routes
+- **Database**: SQLite (via Prisma ORM)
+- **Authentication**: NextAuth.js
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+ installed
+- npm 9+ installed
+
+### Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/notarynow.git
+cd notarynow
+```
+
+2. Run the setup script to install dependencies and initialize the database:
+
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+3. Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Default Login Credentials
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The setup script seeds the database with the following default accounts:
 
-## Learn More
+- **Customer**: jane.doe@example.com / customer123
+- **Notary**: john.smith@example.com / notary123
+- **Admin**: admin@notarynow.com / admin123
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/src/app` - Next.js App Router pages
+- `/src/app/api` - API routes
+- `/src/components` - Reusable React components
+- `/src/lib` - Utility functions and database clients
+- `/src/providers` - React context providers
+- `/prisma` - Database schema and migrations
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Development
 
-## Deploy on Vercel
+### Database Management
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- View the database schema: `npx prisma studio`
+- Reset the database: `npx prisma migrate reset`
+- Apply migrations: `npx prisma migrate dev`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### API Endpoints
+
+- Authentication: `/api/auth/[...nextauth]`, `/api/auth/register`
+- Notaries: `/api/notaries`, `/api/notaries/profile`, `/api/notaries/services/[id]`
+- Appointments: `/api/appointments`, `/api/appointments/[id]`
+- Services: `/api/services`
+- Certifications: `/api/certifications`
+- Reviews: `/api/reviews`
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- [Next.js](https://nextjs.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [shadcn/ui](https://ui.shadcn.com/)
+- [Prisma](https://prisma.io/)
+- [NextAuth.js](https://next-auth.js.org/)

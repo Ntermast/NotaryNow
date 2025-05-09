@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { TabsList, TabsTrigger, TabsContent, Tabs } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,196 +11,282 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { StatsCard } from '@/components/dashboard/stats-card';
 import { AppointmentCard } from '@/components/dashboard/appointment-card';
 import { QuickActions } from '@/components/dashboard/quick-actions';
-
-// This would normally come from an API
-const MOCK_UPCOMING_APPOINTMENTS = [
-  {
-    id: 1,
-    notaryName: 'John Smith',
-    service: 'Deed Notarization',
-    date: '2025-03-05',
-    time: '10:00 AM',
-    location: '123 Main St, Suite 101',
-    status: 'approved',
-    cost: 45
-  },
-  {
-    id: 2,
-    notaryName: 'Sarah Johnson',
-    service: 'Power of Attorney',
-    date: '2025-03-10',
-    time: '2:30 PM',
-    location: '456 Oak Ave',
-    status: 'pending',
-    cost: 65
-  }
-];
-
-const MOCK_PAST_APPOINTMENTS = [
-  {
-    id: 3,
-    notaryName: 'Michael Brown',
-    service: 'Mortgage Signing',
-    date: '2025-02-15',
-    time: '9:00 AM',
-    location: '789 Pine Rd',
-    status: 'completed',
-    cost: 120,
-    rated: true,
-    rating: 5
-  },
-  {
-    id: 4,
-    notaryName: 'Emily Davis',
-    service: 'Affidavit Notarization',
-    date: '2025-02-01',
-    time: '11:30 AM',
-    location: '345 Maple St',
-    status: 'completed',
-    cost: 35,
-    rated: false
-  }
-];
+import Link from 'next/link';
+import { toast } from 'sonner';
 
 export default function CustomerDashboard() {
-  const [upcomingAppointments, setUpcomingAppointments] = useState(MOCK_UPCOMING_APPOINTMENTS);
-  const [pastAppointments, setPastAppointments] = useState(MOCK_PAST_APPOINTMENTS);
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
-  const handleCancelAppointment = (id) => {
-    // In a real app, this would make an API call
-    console.log(`Cancelling appointment ${id}`);
-    
-    // Update local state to simulate API response
-    setUpcomingAppointments(prev => 
-      prev.map(app => 
-        app.id === id ? { ...app, status: 'cancelled' } : app
-      )
-    );
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [upcomingAppointments, setUpcomingAppointments] = useState([]);
+  const [pastAppointments, setPastAppointments] = useState([]);
+
+  // Redirect if not authenticated or not a customer
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/signin");
+    } else if (status === "authenticated" && session.user.role !== "CUSTOMER") {
+      router.push(`/dashboard/${session.user.role.toLowerCase()}`);
+    }
+  }, [status, session, router]);
+
+  // Fetch appointments from API
+  useEffect(() => {
+    async function fetchAppointments() {
+      if (status === "authenticated") {
+        try {
+          const response = await fetch('/api/appointments');
+          if (!response.ok) throw new Error('Failed to fetch appointments');
+
+          const data = await response.json();
+          setAppointments(data);
+
+          // Split appointments into upcoming and past
+          const now = new Date();
+          const upcoming = data.filter(app => {
+            const appDate = new Date(app.scheduledTime);
+            return appDate >= now && app.status !== 'denied' && app.status !== 'cancelled';
+          });
+
+          const past = data.filter(app => {
+            const appDate = new Date(app.scheduledTime);
+            return appDate < now || app.status === 'denied' || app.status === 'cancelled';
+          });
+
+          setUpcomingAppointments(upcoming);
+          setPastAppointments(past);
+          setLoading(false);
+        } catch (error) {
+          console.error('Error fetching appointments:', error);
+          setLoading(false);
+          toast.error('Failed to fetch appointments');
+        }
+      }
+    }
+
+    fetchAppointments();
+  }, [status]);
+
+  const handleCancelAppointment = async (id) => {
+    try {
+      const response = await fetch(`/api/appointments/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
+
+      if (!response.ok) throw new Error('Failed to cancel appointment');
+
+      // Update local state
+      const updatedAppointment = await response.json();
+
+      setAppointments(prev =>
+        prev.map(app => app.id === id ? updatedAppointment : app)
+      );
+
+      // Move from upcoming to past appointments
+      setUpcomingAppointments(prev => prev.filter(app => app.id !== id));
+      setPastAppointments(prev => [...prev, updatedAppointment]);
+
+      toast.success('Appointment cancelled successfully');
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+      toast.error('Failed to cancel appointment');
+    }
   };
 
   const handleRescheduleAppointment = (id) => {
-    // In a real app, this would open a reschedule dialog and make an API call
-    console.log(`Rescheduling appointment ${id}`);
+    // This would open a reschedule dialog, which we'll leave as a future enhancement
+    toast.info('Reschedule functionality is coming soon');
   };
 
-  const handleReviewSubmit = (id, rating, comment) => {
-    // In a real app, this would make an API call
-    console.log(`Submitting review for appointment ${id}:`, { rating, comment });
-    
-    // Update local state to simulate API response
-    setPastAppointments(prev => 
-      prev.map(app => 
-        app.id === id ? { ...app, rated: true, rating } : app
-      )
-    );
+  const handleReviewSubmit = async (id, rating, comment) => {
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          appointmentId: id,
+          rating,
+          comment: comment || '',
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to submit review');
+
+      // Update local state
+      setPastAppointments(prev =>
+        prev.map(app =>
+          app.id === id ? {
+            ...app,
+            reviews: [...(app.reviews || []), { rating, comment, createdAt: new Date() }]
+          } : app
+        )
+      );
+
+      toast.success('Review submitted successfully');
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      toast.error('Failed to submit review');
+    }
   };
 
-  return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar 
-        userRole="customer" 
-        userName="Jane Doe" 
-        userEmail="jane.doe@example.com" 
-      />
-
-      <div className="md:pl-64 flex flex-col flex-1">
-        {/* Top navbar */}
-        <div className="sticky top-0 z-10 flex h-16 flex-shrink-0 bg-white shadow">
-          <div className="flex flex-1 justify-between px-4 md:px-6">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold">Dashboard</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button variant="outline" size="sm">
-                <BellIcon className="h-4 w-4 mr-2" />
-                Notifications
-              </Button>
-              <Button variant="outline" size="icon">
-                <SettingsIcon className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Dashboard content */}
-        <main className="flex-1 pb-8">
-          <div className="mt-8 px-4 sm:px-6 lg:px-8">
-            {/* Summary Cards */}
-            <div className="grid gap-4 md:grid-cols-3">
-              <StatsCard 
-                title="Total Appointments" 
-                value={upcomingAppointments.length + pastAppointments.length}
-                icon={Calendar}
-              />
-              <StatsCard 
-                title="Upcoming" 
-                value={upcomingAppointments.length}
-                icon={Clock}
-              />
-              <StatsCard 
-                title="Pending Review" 
-                value={pastAppointments.filter(a => !a.rated && a.status === 'completed').length}
-                icon={Calendar}
-              />
-            </div>
-
-            <QuickActions />
-
-            {/* Appointments */}
-            <div className="mt-8">
-              <Tabs defaultValue="upcoming">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="upcoming">Upcoming Appointments</TabsTrigger>
-                  <TabsTrigger value="past">Past Appointments</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="upcoming">
-                  <div className="space-y-4">
-                    {upcomingAppointments.length > 0 ? (
-                      upcomingAppointments.map((appointment) => (
-                        <AppointmentCard 
-                          key={appointment.id} 
-                          appointment={appointment}
-                          onCancel={appointment.status === 'pending' ? handleCancelAppointment : undefined}
-                          onReschedule={appointment.status === 'approved' ? handleRescheduleAppointment : undefined}
-                        />
-                      ))
-                    ) : (
-                      <Card>
-                        <CardContent className="py-8 text-center">
-                          <p className="text-gray-500">You have no upcoming appointments</p>
-                          <Button className="mt-4">Schedule an Appointment</Button>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="past">
-                  <div className="space-y-4">
-                    {pastAppointments.length > 0 ? (
-                      pastAppointments.map((appointment) => (
-                        <AppointmentCard 
-                          key={appointment.id} 
-                          appointment={appointment}
-                          onReview={!appointment.rated && appointment.status === 'completed' ? handleReviewSubmit : undefined}
-                        />
-                      ))
-                    ) : (
-                      <Card>
-                        <CardContent className="py-8 text-center">
-                          <p className="text-gray-500">You have no past appointments</p>
-                          <Button className="mt-4">Find a Notary</Button>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-          </div>
-        </main>
+  if (status === "loading" || loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (status === "authenticated" && session.user.role === "CUSTOMER") {
+    const pendingReviewsCount = pastAppointments.filter(
+      app => app.status === 'completed' && (!app.reviews || app.reviews.length === 0)
+    ).length;
+
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar
+          userRole="customer"
+          userName={session.user.name}
+          userEmail={session.user.email}
+        />
+
+        <div className="md:pl-64 flex flex-col flex-1">
+          {/* Top navbar */}
+          <div className="sticky top-0 z-10 flex h-16 flex-shrink-0 bg-white shadow">
+            <div className="flex flex-1 justify-between px-4 md:px-6">
+              <div className="flex items-center">
+                <h1 className="text-xl font-semibold">Dashboard</h1>
+              </div>
+              <div className="flex items-center gap-4">
+                <Button variant="outline" size="sm">
+                  <BellIcon className="h-4 w-4 mr-2" />
+                  Notifications
+                </Button>
+                <Button variant="outline" size="icon">
+                  <SettingsIcon className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Dashboard content */}
+          <main className="flex-1 pb-8">
+            <div className="mt-8 px-4 sm:px-6 lg:px-8">
+              {/* Summary Cards */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <StatsCard
+                  title="Total Appointments"
+                  value={appointments.length}
+                  icon={Calendar}
+                />
+                <StatsCard
+                  title="Upcoming"
+                  value={upcomingAppointments.length}
+                  icon={Clock}
+                />
+                <StatsCard
+                  title="Pending Review"
+                  value={pendingReviewsCount}
+                  icon={Calendar}
+                />
+              </div>
+
+              <QuickActions />
+
+              {/* Appointments */}
+              <div className="mt-8">
+                <Tabs defaultValue="upcoming">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="upcoming">Upcoming Appointments</TabsTrigger>
+                    <TabsTrigger value="past">Past Appointments</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="upcoming">
+                    <div className="space-y-4">
+                      {upcomingAppointments.length > 0 ? (
+                        upcomingAppointments.map((appointment) => (
+                          <AppointmentCard
+                            key={appointment.id}
+                            appointment={{
+                              id: appointment.id,
+                              notaryName: appointment.notary.name,
+                              service: appointment.service.name,
+                              date: new Date(appointment.scheduledTime).toLocaleDateString(),
+                              time: new Date(appointment.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                              location: appointment.notes || 'No location specified',
+                              status: appointment.status,
+                              cost: appointment.totalCost
+                            }}
+                            onCancel={appointment.status === 'pending' ? () => handleCancelAppointment(appointment.id) : undefined}
+                            onReschedule={appointment.status === 'approved' ? () => handleRescheduleAppointment(appointment.id) : undefined}
+                          />
+                        ))
+                      ) : (
+                        <Card>
+                          <CardContent className="py-8 text-center">
+                            <p className="text-gray-500">You have no upcoming appointments</p>
+                            <Link href="/notaries">
+                              <Button className="mt-4">Schedule an Appointment</Button>
+                            </Link>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="past">
+                    <div className="space-y-4">
+                      {pastAppointments.length > 0 ? (
+                        pastAppointments.map((appointment) => (
+                          <AppointmentCard
+                            key={appointment.id}
+                            appointment={{
+                              id: appointment.id,
+                              notaryName: appointment.notary.name,
+                              service: appointment.service.name,
+                              date: new Date(appointment.scheduledTime).toLocaleDateString(),
+                              time: new Date(appointment.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                              location: appointment.notes || 'No location specified',
+                              status: appointment.status,
+                              cost: appointment.totalCost,
+                              rated: appointment.reviews && appointment.reviews.length > 0,
+                              rating: appointment.reviews && appointment.reviews.length > 0 ? appointment.reviews[0].rating : undefined
+                            }}
+                            onReview={
+                              appointment.status === 'completed' && (!appointment.reviews || appointment.reviews.length === 0)
+                                ? (rating, comment) => handleReviewSubmit(appointment.id, rating, comment)
+                                : undefined
+                            }
+                          />
+                        ))
+                      ) : (
+                        <Card>
+                          <CardContent className="py-8 text-center">
+                            <p className="text-gray-500">You have no past appointments</p>
+                            <Link href="/notaries">
+                              <Button className="mt-4">Find a Notary</Button>
+                            </Link>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
