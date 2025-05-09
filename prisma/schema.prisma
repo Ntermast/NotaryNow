@@ -1,0 +1,131 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  NOTARY
+  SECRETARY
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          UserRole  @default(CUSTOMER)
+  phone         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  notaryProfile NotaryProfile?
+  appointments  Appointment[] @relation("CustomerAppointments")
+  notaryAppointments Appointment[] @relation("NotaryAppointments")
+  reviews       Review[]
+}
+
+model NotaryProfile {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isApproved    Boolean   @default(false)
+  address       String
+  city          String
+  state         String
+  zip           String
+  hourlyRate    Float
+  averageRating Float     @default(0)
+  bio           String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations to certification and service tables
+  certifications NotaryCertification[]
+  notaryServices NotaryService[]
+}
+
+model Certification {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  notaries    NotaryCertification[]
+}
+
+model NotaryCertification {
+  id              String        @id @default(cuid())
+  notaryProfileId String
+  notaryProfile   NotaryProfile @relation(fields: [notaryProfileId], references: [id], onDelete: Cascade)
+  certificationId String
+  certification   Certification @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+  dateObtained    DateTime?
+  documentUrl     String?
+  createdAt       DateTime      @default(now())
+  
+  @@unique([notaryProfileId, certificationId])
+}
+
+model Service {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String
+  basePrice   Float
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  appointments Appointment[]
+  notaries     NotaryService[]
+}
+
+model NotaryService {
+  id              String        @id @default(cuid())
+  notaryProfileId String
+  notaryProfile   NotaryProfile @relation(fields: [notaryProfileId], references: [id], onDelete: Cascade)
+  serviceId       String
+  service         Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  customPrice     Float?       // Optional custom price that overrides the base price
+  createdAt       DateTime      @default(now())
+  
+  @@unique([notaryProfileId, serviceId])
+}
+
+model Appointment {
+  id          String   @id @default(cuid())
+  customerId  String
+  customer    User     @relation("CustomerAppointments", fields: [customerId], references: [id])
+  notaryId    String
+  notary      User     @relation("NotaryAppointments", fields: [notaryId], references: [id])
+  serviceId   String
+  service     Service  @relation(fields: [serviceId], references: [id])
+  scheduledTime DateTime
+  duration    Int      // in minutes
+  status      String   @default("pending") // pending, approved, denied, completed, cancelled
+  totalCost   Float
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  reviews     Review[]
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  customerId    String
+  customer      User     @relation(fields: [customerId], references: [id])
+  rating        Int      // 1-5
+  comment       String?
+  createdAt     DateTime @default(now())
+}
