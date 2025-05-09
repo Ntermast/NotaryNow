@@ -2,14 +2,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../../auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/auth-options";
 
 // Add a certification to a notary profile
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -20,7 +21,6 @@ export async function POST(
     }
 
     const userId = session.user.id;
-    const certificationId = params.id;
     const body = await request.json();
     const { dateObtained, documentUrl } = body;
 
@@ -41,7 +41,7 @@ export async function POST(
     // Check if certification exists
     const certification = await prisma.certification.findUnique({
       where: {
-        id: certificationId,
+        id,
       },
     });
 
@@ -57,7 +57,7 @@ export async function POST(
       where: {
         notaryProfileId_certificationId: {
           notaryProfileId: notaryProfile.id,
-          certificationId: certificationId,
+          certificationId: id,
         },
       },
     });
@@ -73,7 +73,7 @@ export async function POST(
     const notaryCertification = await prisma.notaryCertification.create({
       data: {
         notaryProfileId: notaryProfile.id,
-        certificationId: certificationId,
+        certificationId: id,
         dateObtained: dateObtained ? new Date(dateObtained) : null,
         documentUrl,
       },
@@ -95,9 +95,10 @@ export async function POST(
 // Remove a certification from a notary profile
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -108,7 +109,6 @@ export async function DELETE(
     }
 
     const userId = session.user.id;
-    const certificationId = params.id;
 
     // Find the notary profile
     const notaryProfile = await prisma.notaryProfile.findUnique({
@@ -129,7 +129,7 @@ export async function DELETE(
       where: {
         notaryProfileId_certificationId: {
           notaryProfileId: notaryProfile.id,
-          certificationId: certificationId,
+          certificationId: id,
         },
       },
     });
@@ -147,9 +147,10 @@ export async function DELETE(
 // Update certification details (date obtained, document URL)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -160,7 +161,6 @@ export async function PATCH(
     }
 
     const userId = session.user.id;
-    const certificationId = params.id;
     const body = await request.json();
     const { dateObtained, documentUrl } = body;
 
@@ -183,7 +183,7 @@ export async function PATCH(
       where: {
         notaryProfileId_certificationId: {
           notaryProfileId: notaryProfile.id,
-          certificationId: certificationId,
+          certificationId: id,
         },
       },
       data: {

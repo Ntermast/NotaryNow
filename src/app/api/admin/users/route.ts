@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/auth-options";
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,8 +20,8 @@ export async function GET(request: NextRequest) {
     const role = searchParams.get("role"); // optional role filter
 
     // Build where clause
-    let where: any = {};
-    
+    const where: any = {};
+
     if (role) {
       where.role = role.toUpperCase();
     }

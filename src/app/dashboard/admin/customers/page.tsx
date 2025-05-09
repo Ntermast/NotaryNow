@@ -8,9 +8,23 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Eye, Calendar, Mail, Phone, UserIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Define Customer type
+interface Customer {
+  id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  createdAt: string;
+  joinDate: string;
+  _count?: {
+    appointments?: number;
+    reviews?: number;
+  }
+}
+
 export default function AdminCustomersPage() {
-  const [customers, setCustomers] = useState([]);
-  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +42,7 @@ export default function AdminCustomersPage() {
         const data = await response.json();
         
         // Format date strings
-        const formattedCustomers = data.map(customer => ({
+        const formattedCustomers = data.map((customer: any) => ({
           ...customer,
           joinDate: new Date(customer.createdAt).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -66,13 +80,13 @@ export default function AdminCustomersPage() {
   }, [customers, searchQuery]);
 
   // View customer details handler
-  const handleViewDetails = (customer) => {
+  const handleViewDetails = (customer: Customer) => {
     // For now, just show some customer info in a toast
     toast.info(`Viewing details for ${customer.name}`);
   };
   
   // View customer appointments handler
-  const handleViewAppointments = (customer) => {
+  const handleViewAppointments = (customer: Customer) => {
     // For now, just show some customer info in a toast
     toast.info(`Viewing appointments for ${customer.name}`);
   };

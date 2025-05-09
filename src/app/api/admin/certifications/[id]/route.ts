@@ -1,24 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/auth-options";
 
 // Get a single certification
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const certificationId = params.id;
-    
     const certification = await prisma.certification.findUnique({
       where: {
-        id: certificationId
+        id
       },
       include: {
         _count: {
@@ -49,9 +48,10 @@ export async function GET(
 // Update a certification
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -62,7 +62,6 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const certificationId = params.id;
     const body = await request.json();
     const { name, description } = body;
 
@@ -77,7 +76,7 @@ export async function PATCH(
     // Check if certification exists
     const existingCertification = await prisma.certification.findUnique({
       where: {
-        id: certificationId
+        id
       }
     });
 
@@ -91,7 +90,7 @@ export async function PATCH(
     // Update the certification
     const updatedCertification = await prisma.certification.update({
       where: {
-        id: certificationId
+        id
       },
       data: {
         name,
@@ -107,7 +106,7 @@ export async function PATCH(
     });
 
     return NextResponse.json(updatedCertification);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating certification:", error);
     
     // Check for unique constraint violation
@@ -128,9 +127,10 @@ export async function PATCH(
 // Delete a certification
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -141,12 +141,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const certificationId = params.id;
-
     // Check if certification exists
     const existingCertification = await prisma.certification.findUnique({
       where: {
-        id: certificationId
+        id
       },
       include: {
         _count: {
@@ -175,7 +173,7 @@ export async function DELETE(
     // Delete the certification
     await prisma.certification.delete({
       where: {
-        id: certificationId
+        id
       }
     });
 

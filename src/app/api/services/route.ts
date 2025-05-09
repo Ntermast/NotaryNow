@@ -1,9 +1,9 @@
-// src/app/api/services/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/auth-options";
 
+// GET all services
 export async function GET(request: NextRequest) {
   try {
     const services = await prisma.service.findMany({
@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: {
-        name: "asc",
-      },
+        name: 'asc'
+      }
     });
 
     return NextResponse.json(services);
@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// POST to create a new service
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -42,28 +43,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Get request body
     const body = await request.json();
     const { name, description, basePrice } = body;
 
     // Validate required fields
-    if (!name || !description || basePrice === undefined) {
+    if (!name) {
       return NextResponse.json(
-        { error: "Name, description, and basePrice are required" },
+        { error: "Name is required" },
         { status: 400 }
       );
     }
 
-    // Parse price to ensure it's a number
-    const price = parseFloat(basePrice);
-    if (isNaN(price) || price < 0) {
-      return NextResponse.json(
-        { error: "Base price must be a valid positive number" },
-        { status: 400 }
-      );
+    // Validate price
+    let price = 0;
+    if (basePrice) {
+      price = parseFloat(basePrice);
+      if (isNaN(price) || price < 0) {
+        return NextResponse.json(
+          { error: "Base price must be a valid positive number" },
+          { status: 400 }
+        );
+      }
     }
 
-    // Create new service
+    // Create the service
     const newService = await prisma.service.create({
       data: {
         name,
@@ -73,7 +76,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(newService, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating service:", error);
 
     // Check for unique constraint violation

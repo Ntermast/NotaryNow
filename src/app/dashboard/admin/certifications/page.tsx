@@ -10,13 +10,30 @@ import { Plus, CheckCircle, XCircle, Edit, Trash2, Award } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
+// Define types for our data
+interface Certification {
+  id: string;
+  name: string;
+  description?: string;
+  _count?: {
+    notaries: number;
+  };
+}
+
+interface PendingApproval {
+  id: string;
+  certificationName: string;
+  notaryName: string;
+  dateObtained: string;
+}
+
 export default function AdminCertificationsPage() {
-  const [certifications, setCertifications] = useState([]);
-  const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [certifications, setCertifications] = useState<Certification[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [currentCertification, setCurrentCertification] = useState(null);
+  const [currentCertification, setCurrentCertification] = useState<Certification | null>(null);
 
   // Form states
   const [formName, setFormName] = useState('');
@@ -87,14 +104,14 @@ export default function AdminCertificationsPage() {
       setIsAddDialogOpen(false);
 
       toast.success('Certification created successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating certification:', error);
       toast.error(error.message || 'Failed to create certification');
     }
   };
 
   // Edit certification handler
-  const handleEditCertification = (certification) => {
+  const handleEditCertification = (certification: Certification) => {
     setCurrentCertification(certification);
     setFormName(certification.name);
     setFormDescription(certification.description || '');
@@ -141,14 +158,14 @@ export default function AdminCertificationsPage() {
       setIsEditDialogOpen(false);
 
       toast.success('Certification updated successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating certification:', error);
       toast.error(error.message || 'Failed to update certification');
     }
   };
 
   // Delete certification handler
-  const handleDeleteCertification = async (certification) => {
+  const handleDeleteCertification = async (certification: Certification) => {
     if (!confirm(`Are you sure you want to delete ${certification.name}?`)) {
       return;
     }
@@ -167,14 +184,14 @@ export default function AdminCertificationsPage() {
       // Remove from local state
       setCertifications(certifications.filter(c => c.id !== certification.id));
       toast.success('Certification deleted successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting certification:', error);
       toast.error(error.message || 'Failed to delete certification');
     }
   };
 
   // Approve certification handler
-  const handleApprove = async (id) => {
+  const handleApprove = async (id: string) => {
     try {
       const response = await fetch(`/api/admin/certifications/approve/${id}`, {
         method: 'PATCH'
@@ -188,14 +205,14 @@ export default function AdminCertificationsPage() {
         const error = await response.json();
         throw new Error(error.error || 'Failed to approve certification');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error approving certification:', error);
       toast.error(error.message || 'Failed to approve certification');
     }
   };
 
   // Reject certification handler
-  const handleReject = async (id) => {
+  const handleReject = async (id: string) => {
     try {
       // In a real app you'd call a reject API endpoint
       // For now, we'll just remove it from the UI

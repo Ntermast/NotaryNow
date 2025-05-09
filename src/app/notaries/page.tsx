@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Header } from '@/components/layout/header';
@@ -20,12 +20,7 @@ export default function NotarySearchPage() {
   });
   const [loading, setLoading] = useState(true);
 
-  // Fetch notaries on initial load
-  useEffect(() => {
-    fetchNotaries();
-  }, []);
-
-  const fetchNotaries = async (customFilters = filters) => {
+  const fetchNotaries = useCallback(async (customFilters = filters) => {
     setLoading(true);
     try {
       // Build query params
@@ -50,7 +45,12 @@ export default function NotarySearchPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, sortOption]);
+
+  // Fetch notaries on initial load
+  useEffect(() => {
+    fetchNotaries();
+  }, [fetchNotaries]);
 
   const handleFilterChange = (newFilters) => {
     const updatedFilters = { ...filters, ...newFilters };

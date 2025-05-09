@@ -1,21 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/auth-options";
 
+// Get all certifications
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Check if user is admin
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    // Get all certifications with count of notaries
     const certifications = await prisma.certification.findMany({
       include: {
         _count: {
@@ -25,7 +15,7 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: {
-        createdAt: 'desc'
+        name: 'asc'
       }
     });
 
@@ -39,6 +29,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Create a new certification
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -51,19 +42,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Get request body
     const body = await request.json();
     const { name, description } = body;
 
     // Validate required fields
     if (!name) {
       return NextResponse.json(
-        { error: "Certification name is required" },
+        { error: "Name is required" },
         { status: 400 }
       );
     }
 
-    // Create new certification
+    // Create the certification
     const newCertification = await prisma.certification.create({
       data: {
         name,
@@ -72,7 +62,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(newCertification, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating certification:", error);
     
     // Check for unique constraint violation

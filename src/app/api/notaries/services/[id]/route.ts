@@ -2,13 +2,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../../auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/auth-options";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -19,7 +20,6 @@ export async function POST(
     }
 
     const userId = session.user.id;
-    const serviceId = params.id;
 
     // Find the notary profile
     const notaryProfile = await prisma.notaryProfile.findUnique({
@@ -38,7 +38,7 @@ export async function POST(
     // Check if service exists
     const service = await prisma.service.findUnique({
       where: {
-        id: serviceId,
+        id,
       },
     });
 
@@ -54,7 +54,7 @@ export async function POST(
       where: {
         notaryProfileId_serviceId: {
           notaryProfileId: notaryProfile.id,
-          serviceId: serviceId,
+          serviceId: id,
         },
       },
     });
@@ -70,7 +70,7 @@ export async function POST(
     const notaryService = await prisma.notaryService.create({
       data: {
         notaryProfileId: notaryProfile.id,
-        serviceId: serviceId,
+        serviceId: id,
       },
     });
 
@@ -86,9 +86,10 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -99,7 +100,6 @@ export async function DELETE(
     }
 
     const userId = session.user.id;
-    const serviceId = params.id;
 
     // Find the notary profile
     const notaryProfile = await prisma.notaryProfile.findUnique({
@@ -120,7 +120,7 @@ export async function DELETE(
       where: {
         notaryProfileId_serviceId: {
           notaryProfileId: notaryProfile.id,
-          serviceId: serviceId,
+          serviceId: id,
         },
       },
     });

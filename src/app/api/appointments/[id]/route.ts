@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/auth-options";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -18,7 +19,7 @@ export async function GET(
 
     const appointment = await prisma.appointment.findUnique({
       where: {
-        id: params.id,
+        id,
       },
       include: {
         customer: {
@@ -77,9 +78,10 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -93,7 +95,7 @@ export async function PATCH(
 
     const appointment = await prisma.appointment.findUnique({
       where: {
-        id: params.id,
+        id,
       },
     });
 
@@ -154,7 +156,7 @@ export async function PATCH(
 
     const updatedAppointment = await prisma.appointment.update({
       where: {
-        id: params.id,
+        id,
       },
       data: updateData,
       include: {

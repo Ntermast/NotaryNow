@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/auth-options";
 
 // GET a single service by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const serviceId = params.id;
+    const { id } = await params;
     
     const service = await prisma.service.findUnique({
       where: {
-        id: serviceId
+        id
       },
       include: {
         _count: {
@@ -45,9 +45,10 @@ export async function GET(
 // PATCH to update a service
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -58,7 +59,6 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const serviceId = params.id;
     const body = await request.json();
     const { name, description, basePrice } = body;
 
@@ -89,7 +89,7 @@ export async function PATCH(
     // Check if service exists
     const existingService = await prisma.service.findUnique({
       where: {
-        id: serviceId
+        id
       }
     });
 
@@ -103,7 +103,7 @@ export async function PATCH(
     // Update the service
     const updatedService = await prisma.service.update({
       where: {
-        id: serviceId
+        id
       },
       data: updateData,
       include: {
@@ -117,7 +117,7 @@ export async function PATCH(
     });
 
     return NextResponse.json(updatedService);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating service:", error);
     
     // Check for unique constraint violation
@@ -138,9 +138,10 @@ export async function PATCH(
 // DELETE a service
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -151,12 +152,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const serviceId = params.id;
-
     // Check if service exists
     const existingService = await prisma.service.findUnique({
       where: {
-        id: serviceId
+        id
       },
       include: {
         _count: {
@@ -186,7 +185,7 @@ export async function DELETE(
     // Delete the service
     await prisma.service.delete({
       where: {
-        id: serviceId
+        id
       }
     });
 

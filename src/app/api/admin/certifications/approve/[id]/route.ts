@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/auth-options";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -18,12 +19,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const certificationId = params.id;
-
     // Find the notary certification
     const notaryCertification = await prisma.notaryCertification.findUnique({
       where: {
-        id: certificationId
+        id
       },
       include: {
         notaryProfile: {
@@ -52,7 +51,7 @@ export async function PATCH(
     // For now, we'll just update the record to simulate approval
     const updatedCertification = await prisma.notaryCertification.update({
       where: {
-        id: certificationId
+        id
       },
       data: {
         // In a real implementation, you'd have a status field like:
