@@ -183,15 +183,26 @@ export default function NotaryDashboard() {
               <div className="mt-8">
                 <h2 className="text-lg font-medium mb-4">Quick Actions</h2>
                 <div className="grid gap-4 md:grid-cols-3">
-                  <Button className="h-auto py-6 flex flex-col items-center justify-center gap-2">
+                  <Button
+                    className="h-auto py-6 flex flex-col items-center justify-center gap-2"
+                    onClick={() => router.push('/dashboard/notary/settings?tab=schedule')}
+                  >
                     <Calendar className="h-6 w-6" />
                     <span>Manage Schedule</span>
                   </Button>
-                  <Button variant="outline" className="h-auto py-6 flex flex-col items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    className="h-auto py-6 flex flex-col items-center justify-center gap-2"
+                    onClick={() => router.push('/dashboard/notary/customers')}
+                  >
                     <Users className="h-6 w-6" />
                     <span>View Customers</span>
                   </Button>
-                  <Button variant="outline" className="h-auto py-6 flex flex-col items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    className="h-auto py-6 flex flex-col items-center justify-center gap-2"
+                    onClick={() => router.push('/dashboard/notary/services')}
+                  >
                     <BookOpen className="h-6 w-6" />
                     <span>Service Offerings</span>
                   </Button>

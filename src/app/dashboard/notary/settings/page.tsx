@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,18 +12,29 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { BellIcon, SettingsIcon } from "lucide-react";
+import { BellIcon, SettingsIcon, LogOut } from "lucide-react";
 import { toast } from "sonner";
-// import { toast } from "@/components/ui/use-toast";
+import { signOut } from "next-auth/react";
 
 export default function NotarySettings() {
     const { data: session, status } = useSession();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const tabParam = searchParams.get('tab');
+
+    const [activeTab, setActiveTab] = useState('profile');
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState(null);
     const [services, setServices] = useState([]);
     const [certifications, setCertifications] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Handle tab from query params
+    useEffect(() => {
+        if (tabParam && ['profile', 'services', 'certifications', 'schedule'].includes(tabParam)) {
+            setActiveTab(tabParam);
+        }
+    }, [tabParam]);
 
     useEffect(() => {
         // Redirect if not authenticated or not a notary
@@ -39,7 +50,7 @@ export default function NotarySettings() {
             if (status === "authenticated") {
                 try {
                     // Fetch profile data
-                    const profileResponse = await fetch("/api/notary/profile");
+                    const profileResponse = await fetch("/api/notaries/profile");
                     if (!profileResponse.ok) throw new Error("Failed to fetch profile");
                     const profileData = await profileResponse.json();
                     setProfile(profileData);
@@ -66,6 +77,10 @@ export default function NotarySettings() {
 
         fetchNotaryProfile();
     }, [status]);
+
+    const handleLogout = async () => {
+        await signOut({ callbackUrl: '/' });
+    };
 
     const handleProfileUpdate = async (e) => {
         e.preventDefault();
@@ -179,7 +194,7 @@ export default function NotarySettings() {
                     {/* Settings content */}
                     <main className="flex-1 pb-8">
                         <div className="mt-8 px-4 sm:px-6 lg:px-8">
-                            <Tabs defaultValue="profile">
+                            <Tabs value={activeTab} onValueChange={setActiveTab}>
                                 <TabsList className="mb-6">
                                     <TabsTrigger value="profile">Profile</TabsTrigger>
                                     <TabsTrigger value="services">Services</TabsTrigger>
@@ -438,6 +453,24 @@ export default function NotarySettings() {
                                         </CardFooter>
                                     </Card>
                                 </TabsContent>
+
+                                {/* Account Actions */}
+                                <div className="mt-6">
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>Account Actions</CardTitle>
+                                            <CardDescription>
+                                                Manage your account settings
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <Button variant="destructive" onClick={handleLogout}>
+                                                <LogOut className="h-4 w-4 mr-2" />
+                                                Sign Out
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                </div>
                             </Tabs>
                         </div>
                     </main>
