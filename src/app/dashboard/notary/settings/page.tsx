@@ -26,9 +26,9 @@ export default function NotarySettings() {
 
     const [activeTab, setActiveTab] = useState('profile');
     const [loading, setLoading] = useState(true);
-    const [profile, setProfile] = useState(null);
-    const [services, setServices] = useState([]);
-    const [certifications, setCertifications] = useState([]);
+    const [profile, setProfile] = useState<any>(null);
+    const [services, setServices] = useState<any[]>([]);
+    const [certifications, setCertifications] = useState<any[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [certificationDialog, setCertificationDialog] = useState({ open: false, certification: null });
     const [uploadingCert, setUploadingCert] = useState(false);
