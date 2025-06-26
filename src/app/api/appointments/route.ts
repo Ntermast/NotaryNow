@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/auth-options";
+import { z } from "zod";
+
+// Validation schemas
+const appointmentQuerySchema = z.object({
+  status: z.enum(["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED", "all"]).optional(),
+});
+
+const createAppointmentSchema = z.object({
+  notaryId: z.string().cuid("Invalid notary ID"),
+  serviceId: z.string().cuid("Invalid service ID"),
+  scheduledTime: z.string().datetime("Invalid date format"),
+  duration: z.number().int().min(15).max(480).optional(), // 15 min to 8 hours
+  notes: z.string().max(1000, "Notes too long").optional(),
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,9 +27,21 @@ export async function GET(request: NextRequest) {
     const userId = session.user.id;
     const userRole = session.user.role;
 
-    // Parse query parameters
+    // Parse and validate query parameters
     const searchParams = request.nextUrl.searchParams;
-    const status = searchParams.get("status");
+    const queryParams = {
+      status: searchParams.get("status"),
+    };
+    
+    const validatedQuery = appointmentQuerySchema.safeParse(queryParams);
+    if (!validatedQuery.success) {
+      return NextResponse.json(
+        { error: "Invalid query parameters", details: validatedQuery.error.issues },
+        { status: 400 }
+      );
+    }
+    
+    const { status } = validatedQuery.data;
 
     // Build where clause
     const where: any = {};
@@ -78,14 +104,16 @@ export async function POST(request: NextRequest) {
     const userId = session.user.id;
     const body = await request.json();
 
-    const { notaryId, serviceId, scheduledTime, duration, notes } = body;
-
-    if (!notaryId || !serviceId || !scheduledTime) {
+    // Validate request body
+    const validatedData = createAppointmentSchema.safeParse(body);
+    if (!validatedData.success) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Invalid request data", details: validatedData.error.issues },
         { status: 400 }
       );
     }
+
+    const { notaryId, serviceId, scheduledTime, duration, notes } = validatedData.data;
 
     console.log("Creating appointment with:", {
       userId,
@@ -116,7 +144,7 @@ export async function POST(request: NextRequest) {
         serviceId,
         scheduledTime: new Date(scheduledTime),
         duration: duration || 60, // Default to 1 hour
-        status: "pending",
+        status: "PENDING",
         totalCost: service.basePrice,
         notes: notes || "",
       },

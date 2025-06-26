@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/auth-options";
+import { z } from "zod";
+
+// Validation schema
+const createServiceSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100, "Name too long"),
+  description: z.string().max(500, "Description too long").optional(),
+  basePrice: z.number().min(0, "Price must be positive").max(10000, "Price too high"),
+});
 
 // GET all services
 export async function GET(request: NextRequest) {
@@ -44,34 +52,24 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, basePrice } = body;
 
-    // Validate required fields
-    if (!name) {
+    // Validate request body
+    const validatedData = createServiceSchema.safeParse(body);
+    if (!validatedData.success) {
       return NextResponse.json(
-        { error: "Name is required" },
+        { error: "Invalid request data", details: validatedData.error.issues },
         { status: 400 }
       );
     }
 
-    // Validate price
-    let price = 0;
-    if (basePrice) {
-      price = parseFloat(basePrice);
-      if (isNaN(price) || price < 0) {
-        return NextResponse.json(
-          { error: "Base price must be a valid positive number" },
-          { status: 400 }
-        );
-      }
-    }
+    const { name, description, basePrice } = validatedData.data;
 
     // Create the service
     const newService = await prisma.service.create({
       data: {
         name,
         description,
-        basePrice: price
+        basePrice
       }
     });
 

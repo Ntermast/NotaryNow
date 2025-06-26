@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/auth-options";
+import { z } from "zod";
+
+// Validation schema
+const updateAppointmentSchema = z.object({
+  status: z.enum(["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"]).optional(),
+  rescheduledTime: z.string().datetime("Invalid date format").optional(),
+  notes: z.string().max(1000, "Notes too long").optional(),
+}).refine(
+  (data) => Object.keys(data).length > 0,
+  { message: "At least one field must be provided" }
+);
 
 export async function GET(
   request: NextRequest,
@@ -91,7 +102,16 @@ export async function PATCH(
     const userRole = session.user.role;
     const body = await request.json();
 
-    const { status, rescheduledTime, notes } = body;
+    // Validate request body
+    const validatedData = updateAppointmentSchema.safeParse(body);
+    if (!validatedData.success) {
+      return NextResponse.json(
+        { error: "Invalid request data", details: validatedData.error.issues },
+        { status: 400 }
+      );
+    }
+
+    const { status, rescheduledTime, notes } = validatedData.data;
 
     const appointment = await prisma.appointment.findUnique({
       where: {
@@ -120,15 +140,15 @@ export async function PATCH(
 
     if (status) {
       // Customers can only cancel their appointments
-      if (isCustomer && status !== "cancelled") {
+      if (isCustomer && status !== "CANCELLED") {
         return NextResponse.json(
           { error: "Customers can only cancel appointments" },
           { status: 403 }
         );
       }
 
-      // Notaries can approve, deny, or complete
-      if (isNotary && !["approved", "denied", "completed"].includes(status)) {
+      // Notaries can confirm, complete, or cancel
+      if (isNotary && !["CONFIRMED", "COMPLETED", "CANCELLED"].includes(status)) {
         return NextResponse.json(
           { error: "Invalid status for notary" },
           { status: 403 }
@@ -140,7 +160,7 @@ export async function PATCH(
 
     if (rescheduledTime) {
       // Only allow rescheduling if appointment is not completed or cancelled
-      if (["completed", "cancelled"].includes(appointment.status)) {
+      if (["COMPLETED", "CANCELLED"].includes(appointment.status)) {
         return NextResponse.json(
           { error: "Cannot reschedule completed or cancelled appointments" },
           { status: 400 }

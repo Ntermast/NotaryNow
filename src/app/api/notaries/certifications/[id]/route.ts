@@ -3,6 +3,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/auth-options";
+import { z } from "zod";
+
+// Validation schemas
+const addCertificationSchema = z.object({
+  dateObtained: z.string().datetime("Invalid date format").optional(),
+  documentUrl: z.string().url("Invalid URL format").optional(),
+});
+
+const updateCertificationSchema = z.object({
+  dateObtained: z.string().datetime("Invalid date format").optional(),
+  documentUrl: z.string().url("Invalid URL format").optional(),
+}).refine(
+  (data) => Object.keys(data).length > 0,
+  { message: "At least one field must be provided" }
+);
 
 // Add a certification to a notary profile
 export async function POST(
@@ -22,7 +37,17 @@ export async function POST(
 
     const userId = session.user.id;
     const body = await request.json();
-    const { dateObtained, documentUrl } = body;
+
+    // Validate request body
+    const validatedData = addCertificationSchema.safeParse(body);
+    if (!validatedData.success) {
+      return NextResponse.json(
+        { error: "Invalid request data", details: validatedData.error.issues },
+        { status: 400 }
+      );
+    }
+
+    const { dateObtained, documentUrl } = validatedData.data;
 
     // Find the notary profile
     const notaryProfile = await prisma.notaryProfile.findUnique({
@@ -162,7 +187,17 @@ export async function PATCH(
 
     const userId = session.user.id;
     const body = await request.json();
-    const { dateObtained, documentUrl } = body;
+
+    // Validate request body
+    const validatedData = updateCertificationSchema.safeParse(body);
+    if (!validatedData.success) {
+      return NextResponse.json(
+        { error: "Invalid request data", details: validatedData.error.issues },
+        { status: 400 }
+      );
+    }
+
+    const { dateObtained, documentUrl } = validatedData.data;
 
     // Find the notary profile
     const notaryProfile = await prisma.notaryProfile.findUnique({

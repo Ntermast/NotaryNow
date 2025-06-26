@@ -12,9 +12,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { BellIcon, SettingsIcon, LogOut } from "lucide-react";
+import { BellIcon, SettingsIcon, LogOut, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { signOut } from "next-auth/react";
+import { FileUpload } from "@/components/ui/file-upload";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function NotarySettings() {
     const { data: session, status } = useSession();
@@ -28,6 +30,10 @@ export default function NotarySettings() {
     const [services, setServices] = useState([]);
     const [certifications, setCertifications] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
+    const [certificationDialog, setCertificationDialog] = useState({ open: false, certification: null });
+    const [uploadingCert, setUploadingCert] = useState(false);
+    const [selectedFile, setSelectedFile] = useState("");
+    const [issueDate, setIssueDate] = useState("");
 
     // Handle tab from query params
     useEffect(() => {
@@ -82,7 +88,7 @@ export default function NotarySettings() {
         await signOut({ callbackUrl: '/' });
     };
 
-    const handleProfileUpdate = async (e) => {
+    const handleProfileUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
 
@@ -93,34 +99,27 @@ export default function NotarySettings() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    address: profile.address,
-                    city: profile.city,
-                    state: profile.state,
-                    zip: profile.zip,
-                    hourlyRate: profile.hourlyRate,
-                    bio: profile.bio,
+                    address: (profile as any)?.address,
+                    city: (profile as any)?.city,
+                    state: (profile as any)?.state,
+                    zip: (profile as any)?.zip,
+                    hourlyRate: (profile as any)?.hourlyRate,
+                    bio: (profile as any)?.bio,
                 }),
             });
 
             if (!response.ok) throw new Error("Failed to update profile");
 
-            toast({
-                title: "Profile updated",
-                description: "Your profile has been successfully updated",
-            });
+            toast.success("Your profile has been successfully updated");
         } catch (error) {
             console.error("Error updating profile:", error);
-            toast({
-                title: "Update failed",
-                description: "There was an error updating your profile",
-                variant: "destructive",
-            });
+            toast.error("There was an error updating your profile");
         } finally {
             setIsSaving(false);
         }
     };
 
-    const handleServiceToggle = async (serviceId, isChecked) => {
+    const handleServiceToggle = async (serviceId: string, isChecked: boolean) => {
         try {
             const method = isChecked ? "POST" : "DELETE";
 
@@ -134,26 +133,99 @@ export default function NotarySettings() {
             if (!response.ok) throw new Error(`Failed to ${isChecked ? 'add' : 'remove'} service`);
 
             // Update the UI
-            setProfile(prev => ({
+            setProfile((prev: any) => ({
                 ...prev,
                 notaryServices: isChecked
-                    ? [...prev.notaryServices, { serviceId }]
-                    : prev.notaryServices.filter(s => s.serviceId !== serviceId)
+                    ? [...(prev?.notaryServices || []), { serviceId }]
+                    : prev?.notaryServices?.filter((s: any) => s.serviceId !== serviceId)
             }));
 
-            toast({
-                title: isChecked ? "Service added" : "Service removed",
-                description: `The service has been ${isChecked ? 'added to' : 'removed from'} your profile`,
-            });
+            toast.success(`The service has been ${isChecked ? 'added to' : 'removed from'} your profile`);
         } catch (error) {
             console.error("Error toggling service:", error);
-            toast({
-                title: "Action failed",
-                description: `Failed to ${isChecked ? 'add' : 'remove'} the service`,
-                variant: "destructive",
-            });
+            toast.error(`Failed to ${isChecked ? 'add' : 'remove'} the service`);
         }
     };
+
+    function openCertificationDialog(certification: any) {
+        const existingCert = (profile as any)?.certifications?.find((c: any) => c.certificationId === certification.id);
+        setCertificationDialog({
+            open: true,
+            certification: {
+                ...certification,
+                existing: existingCert,
+                documentUrl: existingCert?.documentUrl || "",
+                dateObtained: existingCert?.dateObtained || ""
+            }
+        });
+        setSelectedFile(existingCert?.documentUrl || "");
+        setIssueDate(existingCert?.dateObtained ? new Date(existingCert.dateObtained).toISOString().split('T')[0] : "");
+    }
+
+    async function handleCertificationSubmit() {
+        if (!certificationDialog.certification || !selectedFile || !issueDate) {
+            toast.error("Please fill in all required fields");
+            return;
+        }
+
+        setUploadingCert(true);
+        try {
+            const method = (certificationDialog.certification as any)?.existing ? 'PATCH' : 'POST';
+            const url = (certificationDialog.certification as any)?.existing
+                ? `/api/notaries/certifications/${(certificationDialog.certification as any).existing.id}`
+                : '/api/notaries/certifications';
+
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    certificationId: (certificationDialog.certification as any)?.id,
+                    documentUrl: selectedFile,
+                    dateObtained: issueDate
+                }),
+            });
+
+            if (response.ok) {
+                const updatedCert = await response.json();
+
+                // Update the profile state
+                setProfile((prev: any) => {
+                    const updatedCertifications = prev?.certifications || [];
+                    const existingIndex = updatedCertifications.findIndex((c: any) => c.certificationId === (certificationDialog.certification as any)?.id);
+
+                    if (existingIndex >= 0) {
+                        updatedCertifications[existingIndex] = updatedCert;
+                    } else {
+                        updatedCertifications.push(updatedCert);
+                    }
+
+                    return {
+                        ...prev,
+                        certifications: updatedCertifications
+                    };
+                });
+
+                toast.success("Certification saved successfully");
+                setCertificationDialog({ open: false, certification: null });
+                setSelectedFile("");
+                setIssueDate("");
+            } else {
+                const errorData = await response.json();
+                toast.error(errorData.error || "Failed to save certification");
+            }
+        } catch (error) {
+            console.error('Error saving certification:', error);
+            toast.error("Failed to save certification");
+        } finally {
+            setUploadingCert(false);
+        }
+    }
+
+    function handleFileUpload(fileUrl: string) {
+        setSelectedFile(fileUrl);
+    }
 
     if (status === "loading" || loading) {
         return (
@@ -217,9 +289,9 @@ export default function NotarySettings() {
                                                         <Label htmlFor="address">Address</Label>
                                                         <Input
                                                             id="address"
-                                                            value={profile.address}
+                                                            value={(profile as any)?.address || ''}
                                                             onChange={(e) =>
-                                                                setProfile({ ...profile, address: e.target.value })
+                                                                setProfile({ ...(profile as any), address: e.target.value })
                                                             }
                                                         />
                                                     </div>
@@ -227,9 +299,9 @@ export default function NotarySettings() {
                                                         <Label htmlFor="city">City</Label>
                                                         <Input
                                                             id="city"
-                                                            value={profile.city}
+                                                            value={(profile as any)?.city || ''}
                                                             onChange={(e) =>
-                                                                setProfile({ ...profile, city: e.target.value })
+                                                                setProfile({ ...(profile as any), city: e.target.value })
                                                             }
                                                         />
                                                     </div>
@@ -237,9 +309,9 @@ export default function NotarySettings() {
                                                         <Label htmlFor="state">State</Label>
                                                         <Input
                                                             id="state"
-                                                            value={profile.state}
+                                                            value={(profile as any)?.state || ''}
                                                             onChange={(e) =>
-                                                                setProfile({ ...profile, state: e.target.value })
+                                                                setProfile({ ...(profile as any), state: e.target.value })
                                                             }
                                                         />
                                                     </div>
@@ -247,9 +319,9 @@ export default function NotarySettings() {
                                                         <Label htmlFor="zip">ZIP Code</Label>
                                                         <Input
                                                             id="zip"
-                                                            value={profile.zip}
+                                                            value={(profile as any)?.zip || ''}
                                                             onChange={(e) =>
-                                                                setProfile({ ...profile, zip: e.target.value })
+                                                                setProfile({ ...(profile as any), zip: e.target.value })
                                                             }
                                                         />
                                                     </div>
@@ -260,10 +332,10 @@ export default function NotarySettings() {
                                                     <Input
                                                         id="hourlyRate"
                                                         type="number"
-                                                        value={profile.hourlyRate}
+                                                        value={(profile as any)?.hourlyRate || ''}
                                                         onChange={(e) =>
                                                             setProfile({
-                                                                ...profile,
+                                                                ...(profile as any),
                                                                 hourlyRate: parseFloat(e.target.value),
                                                             })
                                                         }
@@ -274,9 +346,9 @@ export default function NotarySettings() {
                                                     <Label htmlFor="bio">Bio</Label>
                                                     <Textarea
                                                         id="bio"
-                                                        value={profile.bio || ""}
+                                                        value={(profile as any)?.bio || ""}
                                                         onChange={(e) =>
-                                                            setProfile({ ...profile, bio: e.target.value })
+                                                            setProfile({ ...(profile as any), bio: e.target.value })
                                                         }
                                                         rows={4}
                                                         placeholder="Tell customers about your experience and expertise"
@@ -351,7 +423,11 @@ export default function NotarySettings() {
                                                                 </p>
                                                             </div>
                                                             <div>
-                                                                <Button variant="outline" size="sm">
+                                                                <Button 
+                                                                    variant="outline" 
+                                                                    size="sm"
+                                                                    onClick={() => openCertificationDialog(cert)}
+                                                                >
                                                                     {profile.certifications.some(
                                                                         (c) => c.certificationId === cert.id
                                                                     )
@@ -379,9 +455,14 @@ export default function NotarySettings() {
                                                                     ).documentUrl && (
                                                                             <p className="text-sm mt-1">
                                                                                 <a
-                                                                                    href="#"
-                                                                                    className="text-primary hover:underline"
+                                                                                    href={profile.certifications.find(
+                                                                                        (c) => c.certificationId === cert.id
+                                                                                    ).documentUrl}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="text-primary hover:underline flex items-center gap-1"
                                                                                 >
+                                                                                    <FileText className="h-3 w-3" />
                                                                                     View Document
                                                                                 </a>
                                                                             </p>
@@ -393,7 +474,13 @@ export default function NotarySettings() {
                                             </div>
                                         </CardContent>
                                         <CardFooter>
-                                            <Button variant="outline">Upload New Certification</Button>
+                                            <Button 
+                                                variant="outline"
+                                                onClick={() => setCertificationDialog({ open: true, certification: null })}
+                                            >
+                                                <Upload className="h-4 w-4 mr-2" />
+                                                Upload New Certification
+                                            </Button>
                                         </CardFooter>
                                     </Card>
                                 </TabsContent>
@@ -475,6 +562,57 @@ export default function NotarySettings() {
                         </div>
                     </main>
                 </div>
+
+                {/* Certification Dialog */}
+                <Dialog open={certificationDialog.open} onOpenChange={(open) =>
+                    setCertificationDialog({ open, certification: open ? certificationDialog.certification : null })
+                }>
+                    <DialogContent className="sm:max-w-[525px]">
+                        <DialogHeader>
+                            <DialogTitle>
+                                {(certificationDialog.certification as any)?.existing ? 'Update' : 'Add'} Certification
+                            </DialogTitle>
+                            <DialogDescription>
+                                {(certificationDialog.certification as any)?.name}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="issue-date">Issue Date</Label>
+                                <Input
+                                    id="issue-date"
+                                    type="date"
+                                    value={issueDate}
+                                    onChange={(e) => setIssueDate(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <FileUpload
+                                    onFileUpload={handleFileUpload}
+                                    certificationId={(certificationDialog.certification as any)?.id || ""}
+                                    currentFile={selectedFile}
+                                    disabled={uploadingCert}
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                variant="outline"
+                                onClick={() => setCertificationDialog({ open: false, certification: null })}
+                                disabled={uploadingCert}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleCertificationSubmit}
+                                disabled={uploadingCert || !selectedFile || !issueDate}
+                            >
+                                {uploadingCert ? 'Saving...' : 'Save Certification'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         );
     }

@@ -2,15 +2,41 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import getServerSession from "next-auth";
 import { authOptions } from "@/app/api/auth/auth-options";
+import { z } from "zod";
+
+// Validation schema for query parameters
+const notarySearchSchema = z.object({
+  zipCode: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code format").optional(),
+  service: z.string().max(100, "Service name too long").optional(),
+  maxDistance: z.string().regex(/^\d+(\.\d+)?$/, "Invalid distance format").optional(),
+  maxRate: z.string().regex(/^\d+(\.\d+)?$/, "Invalid rate format").optional(),
+});
 
 export async function GET(request: NextRequest) {
   try {
-    // Parse query parameters
+    // Parse and validate query parameters
     const searchParams = request.nextUrl.searchParams;
-    const zipCode = searchParams.get("zipCode");
-    const service = searchParams.get("service");
-    const maxDistance = searchParams.get("maxDistance");
-    const maxRate = searchParams.get("maxRate");
+    const queryParams = {
+      zipCode: searchParams.get("zipCode"),
+      service: searchParams.get("service"),
+      maxDistance: searchParams.get("maxDistance"),
+      maxRate: searchParams.get("maxRate"),
+    };
+    
+    // Filter out null values
+    const filteredParams = Object.fromEntries(
+      Object.entries(queryParams).filter(([_, v]) => v !== null)
+    );
+    
+    const validatedQuery = notarySearchSchema.safeParse(filteredParams);
+    if (!validatedQuery.success) {
+      return NextResponse.json(
+        { error: "Invalid query parameters", details: validatedQuery.error.issues },
+        { status: 400 }
+      );
+    }
+    
+    const { zipCode, service, maxDistance, maxRate } = validatedQuery.data;
 
     // Build where clause
     const where: any = {
