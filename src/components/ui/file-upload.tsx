@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, X, FileText, Image } from "lucide-react";
+import { Upload, X, FileText, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 interface FileUploadProps {
@@ -115,7 +115,7 @@ export function FileUpload({
     if (extension === "pdf") {
       return <FileText className="h-4 w-4" />;
     }
-    return <Image className="h-4 w-4" />;
+    return <ImageIcon className="h-4 w-4" />;
   };
 
   return (
