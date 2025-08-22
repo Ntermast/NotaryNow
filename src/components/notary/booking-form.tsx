@@ -73,8 +73,13 @@ export function BookingForm({ notary, onClose }) {
   };
 
   const handleBookingSubmit = async () => {
+    console.log("=== BOOKING ATTEMPT START ===");
+    console.log("Authentication status:", status);
+    console.log("Session data:", session);
+    
     if (status !== 'authenticated') {
       // Redirect to login if not authenticated
+      console.log("User not authenticated, redirecting to login");
       toast.error('Please sign in to book an appointment');
       router.push('/auth/signin');
       return;
@@ -87,7 +92,9 @@ export function BookingForm({ notary, onClose }) {
         selectedDate, 
         selectedTime, 
         notaryId: notary.id, 
-        serviceId: selectedServiceId 
+        serviceId: selectedServiceId,
+        userRole: session?.user?.role,
+        userId: session?.user?.id
       });
       
       // Parse the time string to extract hours and minutes
@@ -120,23 +127,35 @@ export function BookingForm({ notary, onClose }) {
       console.log("Calculated date object:", date);
       
       // Create appointment
+      const requestBody = {
+        notaryId: notary.id,
+        serviceId: selectedServiceId,
+        scheduledTime: date.toISOString(),
+        duration: 60, // Default to 1 hour
+        notes: '',
+      };
+      
+      console.log("Making API request with body:", requestBody);
+      
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          notaryId: notary.id,
-          serviceId: selectedServiceId,
-          scheduledTime: date.toISOString(),
-          duration: 60, // Default to 1 hour
-          notes: '',
-        }),
+        body: JSON.stringify(requestBody),
       });
+
+      console.log("API Response status:", response.status);
+      console.log("API Response headers:", Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Server response:", errorData);
+        console.error("API Error response:", errorData);
+        console.error("Full error details:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
         throw new Error(errorData.error || 'Failed to book appointment');
       }
       
@@ -153,9 +172,13 @@ export function BookingForm({ notary, onClose }) {
         if (onClose) onClose();
       }, 3000);
     } catch (error) {
+      console.error('=== BOOKING ERROR ===');
       console.error('Error booking appointment:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
       toast.error(error instanceof Error ? error.message : 'Failed to book appointment');
     } finally {
+      console.log("=== BOOKING ATTEMPT END ===");
       setLoading(false);
     }
   };

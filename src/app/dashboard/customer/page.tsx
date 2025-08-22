@@ -37,10 +37,21 @@ export default function CustomerDashboard() {
     async function fetchAppointments() {
       if (status === "authenticated") {
         try {
+          console.log("=== FETCHING APPOINTMENTS ===");
           const response = await fetch('/api/appointments');
-          if (!response.ok) throw new Error('Failed to fetch appointments');
+          console.log("Fetch response status:", response.status);
+          console.log("Fetch response headers:", Object.fromEntries(response.headers.entries()));
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+            console.error("Fetch appointments API error:", errorData);
+            console.error("Response status:", response.status);
+            console.error("Response statusText:", response.statusText);
+            throw new Error(`Failed to fetch appointments: ${errorData.error || response.statusText}`);
+          }
 
           const data = await response.json();
+          console.log("Fetched appointments data:", data);
           setAppointments(data);
 
           // Split appointments into upcoming and past
@@ -76,7 +87,7 @@ export default function CustomerDashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: 'cancelled' }),
+        body: JSON.stringify({ status: 'CANCELLED' }),
       });
 
       if (!response.ok) throw new Error('Failed to cancel appointment');
@@ -261,7 +272,7 @@ export default function CustomerDashboard() {
                               rating: appointment.reviews && appointment.reviews.length > 0 ? appointment.reviews[0].rating : undefined
                             }}
                             onReview={
-                              appointment.status === 'completed' && (!appointment.reviews || appointment.reviews.length === 0)
+                              appointment.status === 'COMPLETED' && (!appointment.reviews || appointment.reviews.length === 0)
                                 ? (rating, comment) => handleReviewSubmit(appointment.id, rating, comment)
                                 : undefined
                             }
