@@ -13,7 +13,7 @@ interface AppointmentCardProps {
     date: string;
     time: string;
     location: string;
-    status: 'pending' | 'approved' | 'denied' | 'completed' | 'cancelled';
+    status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
     cost: number;
     rated?: boolean;
     rating?: number;
@@ -29,11 +29,10 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
   
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'denied': 
-      case 'cancelled': 
+      case 'CONFIRMED': return 'bg-green-100 text-green-800';
+      case 'PENDING': return 'bg-yellow-100 text-yellow-800';
+      case 'COMPLETED': return 'bg-blue-100 text-blue-800';
+      case 'CANCELLED': 
         return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -97,19 +96,19 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
       <CardFooter className="border-t pt-4 flex justify-between">
         <Button variant="outline" size="sm">View Details</Button>
         
-        {appointment.status === 'pending' && onCancel && (
+        {appointment.status === 'PENDING' && onCancel && (
           <Button variant="destructive" size="sm" onClick={() => onCancel(appointment.id)}>
             Cancel Request
           </Button>
         )}
         
-        {appointment.status === 'approved' && onReschedule && (
+        {appointment.status === 'CONFIRMED' && onReschedule && (
           <Button variant="outline" size="sm" onClick={() => onReschedule(appointment.id)}>
             Reschedule
           </Button>
         )}
         
-        {appointment.status === 'completed' && !appointment.rated && onReview && (
+        {appointment.status === 'COMPLETED' && !appointment.rated && onReview && (
           <Dialog>
             <DialogTrigger asChild>
               <Button size="sm">Leave Review</Button>

@@ -76,11 +76,11 @@ export default function AdminAppointmentsPage() {
             const today = new Date().toDateString();
             const calculatedStats = {
               total: data.length,
-              pending: data.filter((apt: Appointment) => apt.status === "pending").length,
-              confirmed: data.filter((apt: Appointment) => apt.status === "confirmed").length,
-              completed: data.filter((apt: Appointment) => apt.status === "completed").length,
-              cancelled: data.filter((apt: Appointment) => apt.status === "cancelled").length,
-              totalRevenue: data.filter((apt: Appointment) => apt.status === "completed")
+              pending: data.filter((apt: Appointment) => apt.status === "PENDING").length,
+              confirmed: data.filter((apt: Appointment) => apt.status === "CONFIRMED").length,
+              completed: data.filter((apt: Appointment) => apt.status === "COMPLETED").length,
+              cancelled: data.filter((apt: Appointment) => apt.status === "CANCELLED").length,
+              totalRevenue: data.filter((apt: Appointment) => apt.status === "COMPLETED")
                 .reduce((sum: number, apt: Appointment) => sum + apt.totalCost, 0),
               todayAppointments: data.filter((apt: Appointment) => 
                 new Date(apt.scheduledTime).toDateString() === today).length
@@ -393,7 +393,7 @@ export default function AdminAppointmentsPage() {
                                   View Details
                                 </Button>
                                 
-                                {appointment.status === "pending" && (
+                                {appointment.status === "PENDING" && (
                                   <div className="flex gap-1">
                                     <Button 
                                       size="sm" 
@@ -477,7 +477,7 @@ export default function AdminAppointmentsPage() {
                               </div>
 
                               <div className="flex flex-col gap-2 ml-4">
-                                {appointment.status === "pending" && (
+                                {appointment.status === "PENDING" && (
                                   <>
                                     <Button 
                                       size="sm" 

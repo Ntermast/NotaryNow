@@ -47,12 +47,12 @@ export default function CustomerDashboard() {
           const now = new Date();
           const upcoming = data.filter(app => {
             const appDate = new Date(app.scheduledTime);
-            return appDate >= now && app.status !== 'denied' && app.status !== 'cancelled';
+            return appDate >= now && app.status !== 'CANCELLED';
           });
 
           const past = data.filter(app => {
             const appDate = new Date(app.scheduledTime);
-            return appDate < now || app.status === 'denied' || app.status === 'cancelled';
+            return appDate < now || app.status === 'CANCELLED';
           });
 
           setUpcomingAppointments(upcoming);
@@ -147,7 +147,7 @@ export default function CustomerDashboard() {
 
   if (status === "authenticated" && session.user.role === "CUSTOMER") {
     const pendingReviewsCount = pastAppointments.filter(
-      app => app.status === 'completed' && (!app.reviews || app.reviews.length === 0)
+      app => app.status === 'COMPLETED' && (!app.reviews || app.reviews.length === 0)
     ).length;
 
     return (
@@ -225,8 +225,8 @@ export default function CustomerDashboard() {
                               status: appointment.status,
                               cost: appointment.totalCost
                             }}
-                            onCancel={appointment.status === 'pending' ? () => handleCancelAppointment(appointment.id) : undefined}
-                            onReschedule={appointment.status === 'approved' ? () => handleRescheduleAppointment(appointment.id) : undefined}
+                            onCancel={appointment.status === 'PENDING' ? () => handleCancelAppointment(appointment.id) : undefined}
+                            onReschedule={appointment.status === 'CONFIRMED' ? () => handleRescheduleAppointment(appointment.id) : undefined}
                           />
                         ))
                       ) : (

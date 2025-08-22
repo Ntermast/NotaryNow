@@ -106,9 +106,9 @@ export default function NotaryAppointmentsPage() {
 
   if (status === "authenticated" && session.user.role === "NOTARY") {
     // Filter appointments by status
-    const pendingAppointments = appointments.filter(app => app.status === 'pending');
-    const upcomingAppointments = appointments.filter(app => app.status === 'approved');
-    const completedAppointments = appointments.filter(app => app.status === 'completed');
+    const pendingAppointments = appointments.filter(app => app.status === 'PENDING');
+    const upcomingAppointments = appointments.filter(app => app.status === 'CONFIRMED');
+    const completedAppointments = appointments.filter(app => app.status === 'COMPLETED');
     const otherAppointments = appointments.filter(app => 
       !['pending', 'approved', 'completed'].includes(app.status)
     );

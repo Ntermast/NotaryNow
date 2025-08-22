@@ -46,13 +46,13 @@ export default function NotaryDashboard() {
           // Calculate stats
           const totalAppointments = data.length;
           const pendingAppointments = data.filter(
-            (app) => app.status === "pending"
+            (app) => app.status === "PENDING"
           ).length;
           const completedAppointments = data.filter(
-            (app) => app.status === "completed"
+            (app) => app.status === "COMPLETED"
           ).length;
           const revenue = data
-            .filter((app) => app.status === "completed")
+            .filter((app) => app.status === "COMPLETED")
             .reduce((sum, app) => sum + app.totalCost, 0);
           
           // Calculate average rating
@@ -221,7 +221,7 @@ export default function NotaryDashboard() {
                   <TabsContent value="pending">
                     <div className="space-y-4">
                       {appointments
-                        .filter((app) => app.status === "pending")
+                        .filter((app) => app.status === "PENDING")
                         .map((appointment) => (
                           <Card key={appointment.id}>
                             <CardHeader className="pb-2">
@@ -291,7 +291,7 @@ export default function NotaryDashboard() {
                         ))}
 
                       {appointments.filter(
-                        (app) => app.status === "pending"
+                        (app) => app.status === "PENDING"
                       ).length === 0 && (
                         <Card>
                           <CardContent className="py-8 text-center">
@@ -307,7 +307,7 @@ export default function NotaryDashboard() {
                   <TabsContent value="upcoming">
                     <div className="space-y-4">
                       {appointments
-                        .filter((app) => app.status === "approved")
+                        .filter((app) => app.status === "CONFIRMED")
                         .map((appointment) => (
                           <Card key={appointment.id}>
                             <CardHeader className="pb-2">
@@ -372,7 +372,7 @@ export default function NotaryDashboard() {
                         ))}
 
                       {appointments.filter(
-                        (app) => app.status === "approved"
+                        (app) => app.status === "CONFIRMED"
                       ).length === 0 && (
                         <Card>
                           <CardContent className="py-8 text-center">
@@ -388,7 +388,7 @@ export default function NotaryDashboard() {
                   <TabsContent value="completed">
                     <div className="space-y-4">
                       {appointments
-                        .filter((app) => app.status === "completed")
+                        .filter((app) => app.status === "COMPLETED")
                         .map((appointment) => (
                           <Card key={appointment.id}>
                             <CardHeader className="pb-2">
@@ -462,7 +462,7 @@ export default function NotaryDashboard() {
                         ))}
 
                       {appointments.filter(
-                        (app) => app.status === "completed"
+                        (app) => app.status === "COMPLETED"
                       ).length === 0 && (
                         <Card>
                           <CardContent className="py-8 text-center">

@@ -45,12 +45,12 @@ export default function CustomerAppointmentsPage() {
           const now = new Date();
           const upcoming = data.filter((app: any) => {
             const appDate = new Date(app.scheduledTime);
-            return appDate >= now && app.status !== 'denied' && app.status !== 'cancelled';
+            return appDate >= now && app.status !== 'CANCELLED';
           });
           
           const past = data.filter((app: any) => {
             const appDate = new Date(app.scheduledTime);
-            return appDate < now || app.status === 'denied' || app.status === 'cancelled';
+            return appDate < now || app.status === 'CANCELLED';
           });
           
           setUpcomingAppointments(upcoming);
@@ -74,7 +74,7 @@ export default function CustomerAppointmentsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: 'cancelled' }),
+        body: JSON.stringify({ status: 'CANCELLED' }),
       });
 
       if (!response.ok) throw new Error('Failed to cancel appointment');
@@ -207,8 +207,8 @@ export default function CustomerAppointmentsPage() {
                               status: appointment.status,
                               cost: appointment.totalCost
                             }}
-                            onCancel={appointment.status === 'pending' ? () => handleCancelAppointment(appointment.id) : undefined}
-                            onReschedule={appointment.status === 'approved' ? () => handleRescheduleAppointment(appointment.id) : undefined}
+                            onCancel={appointment.status === 'PENDING' ? () => handleCancelAppointment(appointment.id) : undefined}
+                            onReschedule={appointment.status === 'CONFIRMED' ? () => handleRescheduleAppointment(appointment.id) : undefined}
                           />
                         ))
                       ) : (
@@ -243,7 +243,7 @@ export default function CustomerAppointmentsPage() {
                               rating: appointment.reviews && appointment.reviews.length > 0 ? appointment.reviews[0].rating : undefined
                             }}
                             onReview={
-                              appointment.status === 'completed' && (!appointment.reviews || appointment.reviews.length === 0) 
+                              appointment.status === 'COMPLETED' && (!appointment.reviews || appointment.reviews.length === 0) 
                                 ? (_id: string | number, rating: number, comment: string) => handleReviewSubmit(appointment.id, rating, comment) 
                                 : undefined
                             }
