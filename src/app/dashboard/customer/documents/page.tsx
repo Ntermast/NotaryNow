@@ -11,37 +11,32 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { BellIcon, Upload, FileText, File, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Mock document data - would be fetched from an API in a real implementation
-const MOCK_DOCUMENTS = [
-  {
-    id: '1',
-    name: 'Passport Scan.pdf',
-    type: 'application/pdf',
-    size: '2.4 MB',
-    uploadedAt: '2025-03-02T14:30:00Z'
-  },
-  {
-    id: '2',
-    name: 'Deed Document.docx',
-    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    size: '1.8 MB',
-    uploadedAt: '2025-03-01T10:15:00Z'
-  },
-  {
-    id: '3',
-    name: 'Power of Attorney.pdf',
-    type: 'application/pdf',
-    size: '3.2 MB',
-    uploadedAt: '2025-02-28T16:45:00Z'
-  }
-];
+interface Document {
+  id: string;
+  fileName: string;
+  originalName: string;
+  fileSize: number;
+  fileType: string;
+  fileUrl: string;
+  appointmentId?: string;
+  appointment?: {
+    id: string;
+    scheduledTime: string;
+    service: {
+      name: string;
+    };
+  };
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function CustomerDocumentsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   
-  const [documents, setDocuments] = useState(MOCK_DOCUMENTS);
-  const [loading, setLoading] = useState(false);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
 
   // Redirect if not authenticated or not a customer
   useEffect(() => {
@@ -52,57 +47,128 @@ export default function CustomerDocumentsPage() {
     }
   }, [status, session, router]);
 
-  const handleFileUpload = async (e) => {
+  // Fetch documents when authenticated
+  useEffect(() => {
+    async function fetchDocuments() {
+      if (status === "authenticated") {
+        try {
+          const response = await fetch("/api/documents");
+          if (response.ok) {
+            const data = await response.json();
+            setDocuments(data);
+          } else {
+            toast.error("Failed to load documents");
+          }
+        } catch (error) {
+          console.error("Error fetching documents:", error);
+          toast.error("Failed to load documents");
+        } finally {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchDocuments();
+  }, [status]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
-    setLoading(true);
+    setUploading(true);
     
-    // This would be replaced with an actual API call in a complete implementation
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      for (const file of Array.from(files)) {
+        // Upload file first
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const uploadResponse = await fetch("/api/upload/documents", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json();
+          throw new Error(errorData.error || "Upload failed");
+        }
+
+        const uploadedFile = await uploadResponse.json();
+
+        // Create document record
+        const documentResponse = await fetch("/api/documents", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fileName: uploadedFile.fileName,
+            originalName: uploadedFile.originalName,
+            fileSize: uploadedFile.fileSize,
+            fileType: uploadedFile.fileType,
+            fileUrl: uploadedFile.fileUrl,
+          }),
+        });
+
+        if (!documentResponse.ok) {
+          const errorData = await documentResponse.json();
+          throw new Error(errorData.error || "Failed to save document");
+        }
+
+        const newDocument = await documentResponse.json();
+        setDocuments(prev => [newDocument, ...prev]);
+      }
       
-      // Create new document entries from the files
-      const newDocuments = Array.from(files).map((file, index) => ({
-        id: `new-${Date.now()}-${index}`,
-        name: file.name,
-        type: file.type,
-        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-        uploadedAt: new Date().toISOString()
-      }));
-      
-      setDocuments(prev => [...newDocuments, ...prev]);
       toast.success(`${files.length} document${files.length > 1 ? 's' : ''} uploaded successfully`);
+      
+      // Reset file input
+      e.target.value = '';
     } catch (error) {
       console.error('Error uploading documents:', error);
-      toast.error('Failed to upload documents');
+      toast.error(error instanceof Error ? error.message : 'Failed to upload documents');
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
   };
 
-  const handleDeleteDocument = async (id) => {
+  const handleDeleteDocument = async (id: string) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await fetch(`/api/documents/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete document");
+      }
       
       setDocuments(prev => prev.filter(doc => doc.id !== id));
       toast.success('Document deleted successfully');
     } catch (error) {
       console.error('Error deleting document:', error);
-      toast.error('Failed to delete document');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete document');
     }
   };
 
-  const getFileIcon = (type) => {
+  const handleViewDocument = (document: Document) => {
+    window.open(document.fileUrl, '_blank');
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    if (bytes === 0) return '0 Bytes';
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const getFileIcon = (type: string) => {
     if (type.includes('pdf')) return <FileText className="h-6 w-6 text-red-500" />;
     if (type.includes('word')) return <FileText className="h-6 w-6 text-blue-500" />;
     if (type.includes('image')) return <File className="h-6 w-6 text-green-500" />;
     return <File className="h-6 w-6 text-gray-500" />;
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
       year: 'numeric', 
@@ -164,12 +230,13 @@ export default function CustomerDocumentsPage() {
                         id="document-upload"
                         className="hidden"
                         multiple
+                        accept=".pdf,.jpg,.jpeg,.png"
                         onChange={handleFileUpload}
                       />
                       <Label htmlFor="document-upload" asChild>
-                        <Button disabled={loading}>
+                        <Button disabled={uploading}>
                           <Upload className="h-4 w-4 mr-2" />
-                          {loading ? 'Uploading...' : 'Upload Files'}
+                          {uploading ? 'Uploading...' : 'Upload Files'}
                         </Button>
                       </Label>
                     </div>
@@ -189,23 +256,36 @@ export default function CustomerDocumentsPage() {
                           {documents.map((doc) => (
                             <div key={doc.id} className="px-4 py-3 grid grid-cols-12 gap-4 items-center">
                               <div className="col-span-6 flex items-center">
-                                {getFileIcon(doc.type)}
-                                <span className="ml-2 truncate">{doc.name}</span>
+                                {getFileIcon(doc.fileType)}
+                                <div className="ml-2 min-w-0">
+                                  <span className="truncate block font-medium">{doc.originalName}</span>
+                                  {doc.appointment && (
+                                    <span className="text-xs text-gray-500">
+                                      For: {doc.appointment.service.name}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               <div className="col-span-2 text-sm text-gray-500">
-                                {doc.size}
+                                {formatFileSize(doc.fileSize)}
                               </div>
                               <div className="col-span-3 text-sm text-gray-500">
-                                {formatDate(doc.uploadedAt)}
+                                {formatDate(doc.createdAt)}
                               </div>
                               <div className="col-span-1 flex justify-end space-x-2">
-                                <Button variant="ghost" size="icon">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => handleViewDocument(doc)}
+                                  title="View document"
+                                >
                                   <Eye className="h-4 w-4" />
                                 </Button>
                                 <Button 
                                   variant="ghost" 
                                   size="icon"
                                   onClick={() => handleDeleteDocument(doc.id)}
+                                  title="Delete document"
                                 >
                                   <Trash2 className="h-4 w-4 text-red-500" />
                                 </Button>
@@ -227,7 +307,7 @@ export default function CustomerDocumentsPage() {
                 </CardContent>
                 <CardFooter>
                   <p className="text-sm text-gray-500">
-                    Supported file types: PDF, Word, Images (JPG, PNG)
+                    Supported file types: PDF, Images (JPG, PNG). Maximum file size: 10MB
                   </p>
                 </CardFooter>
               </Card>

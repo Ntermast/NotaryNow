@@ -47,18 +47,27 @@ export async function PATCH(
       );
     }
 
-    // In a real implementation, you would update a status field
-    // For now, we'll just update the record to simulate approval
+    // Update the certification status to approved
     const updatedCertification = await prisma.notaryCertification.update({
       where: {
         id
       },
       data: {
-        // In a real implementation, you'd have a status field like:
-        // status: "approved"
-        
-        // For now, we'll just add an "approved" field to track it
-        documentUrl: `${notaryCertification.documentUrl}#approved`
+        status: "APPROVED"
+      },
+      include: {
+        notaryProfile: {
+          select: {
+            id: true,
+            userId: true
+          }
+        },
+        certification: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       }
     });
 

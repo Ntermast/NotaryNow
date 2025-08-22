@@ -17,6 +17,19 @@ enum UserRole {
   ADMIN
 }
 
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum CertificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String
@@ -31,6 +44,8 @@ model User {
   appointments  Appointment[] @relation("CustomerAppointments")
   notaryAppointments Appointment[] @relation("NotaryAppointments")
   reviews       Review[]
+  documents     Document[] @relation("CustomerDocuments")
+  notifications Notification[]
 }
 
 model NotaryProfile {
@@ -64,14 +79,15 @@ model Certification {
 }
 
 model NotaryCertification {
-  id              String        @id @default(cuid())
+  id              String              @id @default(cuid())
   notaryProfileId String
-  notaryProfile   NotaryProfile @relation(fields: [notaryProfileId], references: [id], onDelete: Cascade)
+  notaryProfile   NotaryProfile       @relation(fields: [notaryProfileId], references: [id], onDelete: Cascade)
   certificationId String
-  certification   Certification @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+  certification   Certification       @relation(fields: [certificationId], references: [id], onDelete: Cascade)
   dateObtained    DateTime?
   documentUrl     String?
-  createdAt       DateTime      @default(now())
+  status          CertificationStatus @default(PENDING)
+  createdAt       DateTime            @default(now())
   
   @@unique([notaryProfileId, certificationId])
 }
@@ -110,13 +126,14 @@ model Appointment {
   service     Service  @relation(fields: [serviceId], references: [id])
   scheduledTime DateTime
   duration    Int      // in minutes
-  status      String   @default("pending") // pending, approved, denied, completed, cancelled
+  status      AppointmentStatus @default(PENDING)
   totalCost   Float
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   reviews     Review[]
+  documents   Document[] @relation("AppointmentDocuments")
 }
 
 model Review {
@@ -128,4 +145,44 @@ model Review {
   rating        Int      // 1-5
   comment       String?
   createdAt     DateTime @default(now())
+}
+
+model Document {
+  id            String   @id @default(cuid())
+  customerId    String
+  customer      User     @relation("CustomerDocuments", fields: [customerId], references: [id])
+  fileName      String
+  originalName  String
+  fileSize      Int
+  fileType      String
+  fileUrl       String
+  appointmentId String?
+  appointment   Appointment? @relation("AppointmentDocuments", fields: [appointmentId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum NotificationType {
+  APPOINTMENT_CREATED
+  APPOINTMENT_CONFIRMED
+  APPOINTMENT_CANCELLED
+  APPOINTMENT_COMPLETED
+  DOCUMENT_UPLOADED
+  CERTIFICATION_APPROVED
+  NEW_MESSAGE
+  SYSTEM_ALERT
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  type        NotificationType
+  title       String
+  message     String
+  read        Boolean          @default(false)
+  actionUrl   String?
+  metadata    String?          // JSON string for additional data
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 }

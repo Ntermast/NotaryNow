@@ -16,10 +16,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all notary certifications pending approval
-    // In a real implementation, you would have a status field on NotaryCertification
-    // For now, we'll use the documentUrl presence to determine if it needs review
     const pendingCertifications = await prisma.notaryCertification.findMany({
       where: {
+        status: "PENDING",
         documentUrl: {
           not: null
         }
@@ -53,7 +52,7 @@ export async function GET(request: NextRequest) {
       certificationName: cert.certification.name,
       dateObtained: cert.dateObtained,
       documentUrl: cert.documentUrl,
-      status: "pending", // In real app, this would come from the database
+      status: cert.status,
       createdAt: cert.createdAt
     }));
 
