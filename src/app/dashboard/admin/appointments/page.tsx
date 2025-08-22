@@ -4,7 +4,6 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Sidebar } from "@/components/layout/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -198,14 +197,7 @@ export default function AdminAppointmentsPage() {
 
   if (status === "authenticated" && session.user.role === "ADMIN") {
     return (
-      <div className="flex min-h-screen bg-gray-50">
-        <Sidebar
-          userRole="admin"
-          userName={session.user.name}
-          userEmail={session.user.email}
-        />
-
-        <div className="md:pl-64 flex flex-col flex-1">
+      <>
           <div className="sticky top-0 z-10 flex h-16 flex-shrink-0 bg-white shadow">
             <div className="flex flex-1 justify-between px-4 md:px-6">
               <div className="flex items-center">
@@ -523,8 +515,7 @@ export default function AdminAppointmentsPage() {
               ))}
             </Tabs>
           </main>
-        </div>
-      </div>
+      </>
     );
   }
 
