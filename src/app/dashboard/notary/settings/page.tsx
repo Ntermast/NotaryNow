@@ -382,7 +382,7 @@ export default function NotarySettings() {
                                                                 (s) => s.serviceId === service.id
                                                             )}
                                                             onCheckedChange={(checked) =>
-                                                                handleServiceToggle(service.id, checked)
+                                                                handleServiceToggle(service.id, checked === true)
                                                             }
                                                         />
                                                         <div className="grid gap-1.5">

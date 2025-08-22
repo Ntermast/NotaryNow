@@ -129,28 +129,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Utility function to create notifications (for internal use)
-export async function createNotification(
-  userId: string,
-  type: string,
-  title: string,
-  message: string,
-  actionUrl?: string,
-  metadata?: any
-) {
-  try {
-    return await prisma.notification.create({
-      data: {
-        userId,
-        type,
-        title,
-        message,
-        actionUrl: actionUrl || null,
-        metadata: metadata ? JSON.stringify(metadata) : null
-      }
-    });
-  } catch (error) {
-    console.error("Error creating notification:", error);
-    throw error;
-  }
-}

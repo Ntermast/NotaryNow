@@ -62,7 +62,7 @@ export class NotificationService {
   // Specific notification types for common scenarios
 
   static async notifyAppointmentCreated(customerId: string, notaryId: string, appointmentId: string, serviceName: string, scheduledTime: Date) {
-    const notificationPromises = [];
+    const notificationPromises: Promise<any>[] = [];
 
     // Notify customer
     notificationPromises.push(
@@ -92,7 +92,7 @@ export class NotificationService {
   }
 
   static async notifyAppointmentStatusChanged(customerId: string, notaryId: string, appointmentId: string, status: string, serviceName: string) {
-    const notificationPromises = [];
+    const notificationPromises: Promise<any>[] = [];
 
     let customerTitle = '';
     let customerMessage = '';
@@ -152,7 +152,7 @@ export class NotificationService {
   }
 
   static async notifyDocumentUploaded(customerId: string, documentName: string, appointmentId?: string) {
-    const notificationPromises = [];
+    const notificationPromises: Promise<any>[] = [];
 
     // If document is for an appointment, notify the notary
     if (appointmentId) {

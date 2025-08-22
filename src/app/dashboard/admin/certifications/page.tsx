@@ -106,7 +106,7 @@ export default function AdminCertificationsPage() {
       toast.success('Certification created successfully');
     } catch (error: any) {
       console.error('Error creating certification:', error);
-      toast.error(error.message || 'Failed to create certification');
+      toast.error(error instanceof Error ? error.message : 'Failed to create certification');
     }
   };
 
@@ -160,7 +160,7 @@ export default function AdminCertificationsPage() {
       toast.success('Certification updated successfully');
     } catch (error: any) {
       console.error('Error updating certification:', error);
-      toast.error(error.message || 'Failed to update certification');
+      toast.error(error instanceof Error ? error.message : 'Failed to update certification');
     }
   };
 
@@ -186,7 +186,7 @@ export default function AdminCertificationsPage() {
       toast.success('Certification deleted successfully');
     } catch (error: any) {
       console.error('Error deleting certification:', error);
-      toast.error(error.message || 'Failed to delete certification');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete certification');
     }
   };
 
@@ -207,7 +207,7 @@ export default function AdminCertificationsPage() {
       }
     } catch (error: any) {
       console.error('Error approving certification:', error);
-      toast.error(error.message || 'Failed to approve certification');
+      toast.error(error instanceof Error ? error.message : 'Failed to approve certification');
     }
   };
 

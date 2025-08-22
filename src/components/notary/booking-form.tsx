@@ -12,11 +12,11 @@ export function BookingForm({ notary, onClose }) {
   const router = useRouter();
   
   const [bookingStage, setBookingStage] = useState(1); // 1: date & time, 2: service, 3: confirmation
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedTime, setSelectedTime] = useState(null);
-  const [selectedService, setSelectedService] = useState(null);
-  const [selectedServiceId, setSelectedServiceId] = useState(null);
-  const [services, setServices] = useState([]);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedService, setSelectedService] = useState<any>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
@@ -91,6 +91,9 @@ export function BookingForm({ notary, onClose }) {
       });
       
       // Parse the time string to extract hours and minutes
+      if (!selectedTime) {
+        throw new Error('No time selected');
+      }
       const timeMatch = selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
       if (!timeMatch) {
         throw new Error(`Invalid time format: ${selectedTime}`);
@@ -108,7 +111,10 @@ export function BookingForm({ notary, onClose }) {
       }
       
       // Create a date object with the correct local time
-      const date = new Date(selectedDate);
+      if (!selectedDate) {
+        throw new Error('No date selected');
+      }
+      const date = new Date(selectedDate + 'T00:00:00');
       date.setHours(hours, parseInt(minutes), 0, 0);
       
       console.log("Calculated date object:", date);
@@ -148,7 +154,7 @@ export function BookingForm({ notary, onClose }) {
       }, 3000);
     } catch (error) {
       console.error('Error booking appointment:', error);
-      toast.error(error.message || 'Failed to book appointment');
+      toast.error(error instanceof Error ? error.message : 'Failed to book appointment');
     } finally {
       setLoading(false);
     }

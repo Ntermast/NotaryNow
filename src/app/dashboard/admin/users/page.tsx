@@ -8,8 +8,8 @@ import { UserIcon, Search, Check, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -54,7 +54,7 @@ export default function AdminUsersPage() {
     setFilteredUsers(filtered);
   }, [users, roleFilter, searchQuery]);
 
-  const getRoleBadgeColor = (role) => {
+  const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'ADMIN': return 'bg-red-100 text-red-800';
       case 'NOTARY': return 'bg-blue-100 text-blue-800';

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const appointmentId = searchParams.get('appointmentId');
 
-    let whereClause: any = {};
+    const whereClause: any = {};
 
     // Customers can only see their own documents
     if (session.user.role === "CUSTOMER") {

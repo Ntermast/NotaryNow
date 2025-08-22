@@ -22,7 +22,7 @@ export default function AdminDashboard() {
     totalAppointments: 0,
     pendingCertifications: 0
   });
-  const [notaries, setNotaries] = useState([]);
+  const [notaries, setNotaries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch real data from API endpoints
@@ -49,7 +49,7 @@ export default function AdminDashboard() {
           const notariesData = await notariesResponse.json();
 
           // Format notary data
-          const formattedNotaries = notariesData.map(notary => ({
+          const formattedNotaries = notariesData.map((notary: any) => ({
             id: notary.id,
             name: notary.name,
             email: notary.email,
@@ -75,7 +75,7 @@ export default function AdminDashboard() {
     fetchAdminData();
   }, [status, session]);
 
-  const handleApproveNotary = async (id) => {
+  const handleApproveNotary = async (id: string) => {
     try {
       const response = await fetch(`/api/admin/notaries/approve/${id}`, {
         method: 'PATCH',

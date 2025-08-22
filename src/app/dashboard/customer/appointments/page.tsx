@@ -16,10 +16,10 @@ export default function CustomerAppointmentsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [upcomingAppointments, setUpcomingAppointments] = useState([]);
-  const [pastAppointments, setPastAppointments] = useState([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
+  const [pastAppointments, setPastAppointments] = useState<any[]>([]);
 
   // Redirect if not authenticated or not a customer
   useEffect(() => {
@@ -43,12 +43,12 @@ export default function CustomerAppointmentsPage() {
           
           // Split appointments into upcoming and past
           const now = new Date();
-          const upcoming = data.filter(app => {
+          const upcoming = data.filter((app: any) => {
             const appDate = new Date(app.scheduledTime);
             return appDate >= now && app.status !== 'denied' && app.status !== 'cancelled';
           });
           
-          const past = data.filter(app => {
+          const past = data.filter((app: any) => {
             const appDate = new Date(app.scheduledTime);
             return appDate < now || app.status === 'denied' || app.status === 'cancelled';
           });
@@ -67,7 +67,7 @@ export default function CustomerAppointmentsPage() {
     fetchAppointments();
   }, [status]);
 
-  const handleCancelAppointment = async (id) => {
+  const handleCancelAppointment = async (id: string) => {
     try {
       const response = await fetch(`/api/appointments/${id}`, {
         method: 'PATCH',
@@ -97,12 +97,12 @@ export default function CustomerAppointmentsPage() {
     }
   };
 
-  const handleRescheduleAppointment = (id) => {
+  const handleRescheduleAppointment = (id: string) => {
     // This would open a reschedule dialog, which we'll leave as a future enhancement
     toast.info('Reschedule functionality is coming soon');
   };
 
-  const handleReviewSubmit = async (id, rating, comment) => {
+  const handleReviewSubmit = async (id: string, rating: number, comment: string) => {
     try {
       const response = await fetch('/api/reviews', {
         method: 'POST',
@@ -244,7 +244,7 @@ export default function CustomerAppointmentsPage() {
                             }}
                             onReview={
                               appointment.status === 'completed' && (!appointment.reviews || appointment.reviews.length === 0) 
-                                ? (rating, comment) => handleReviewSubmit(appointment.id, rating, comment) 
+                                ? (_id: string | number, rating: number, comment: string) => handleReviewSubmit(appointment.id, rating, comment) 
                                 : undefined
                             }
                           />

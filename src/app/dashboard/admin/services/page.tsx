@@ -10,11 +10,11 @@ import { Edit, Trash2, Plus, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminServicesPage() {
-  const [services, setServices] = useState([]);
+  const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [currentService, setCurrentService] = useState(null);
+  const [currentService, setCurrentService] = useState<any>(null);
 
   // Form states
   const [formName, setFormName] = useState('');
@@ -91,12 +91,12 @@ export default function AdminServicesPage() {
       toast.success('Service created successfully');
     } catch (error) {
       console.error('Error creating service:', error);
-      toast.error(error.message || 'Failed to create service');
+      toast.error(error instanceof Error ? error.message : 'Failed to create service');
     }
   };
 
   // Edit service handler
-  const handleEditService = (service) => {
+  const handleEditService = (service: any) => {
     setCurrentService(service);
     setFormName(service.name);
     setFormDescription(service.description);
@@ -154,12 +154,12 @@ export default function AdminServicesPage() {
       toast.success('Service updated successfully');
     } catch (error) {
       console.error('Error updating service:', error);
-      toast.error(error.message || 'Failed to update service');
+      toast.error(error instanceof Error ? error.message : 'Failed to update service');
     }
   };
 
   // Delete service handler
-  const handleDeleteService = async (service) => {
+  const handleDeleteService = async (service: any) => {
     if (!confirm(`Are you sure you want to delete ${service.name}?`)) {
       return;
     }
@@ -179,7 +179,7 @@ export default function AdminServicesPage() {
       toast.success('Service deleted successfully');
     } catch (error) {
       console.error('Error deleting service:', error);
-      toast.error(error.message || 'Failed to delete service');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete service');
     }
   };
 

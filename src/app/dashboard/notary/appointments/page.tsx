@@ -15,7 +15,7 @@ export default function NotaryAppointmentsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Redirect if not authenticated or not a notary

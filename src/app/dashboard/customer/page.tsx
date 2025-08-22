@@ -18,10 +18,10 @@ export default function CustomerDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [upcomingAppointments, setUpcomingAppointments] = useState([]);
-  const [pastAppointments, setPastAppointments] = useState([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
+  const [pastAppointments, setPastAppointments] = useState<any[]>([]);
 
   // Redirect if not authenticated or not a customer
   useEffect(() => {

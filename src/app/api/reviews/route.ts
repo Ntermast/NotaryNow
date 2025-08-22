@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       where: {
         id: appointmentId,
         customerId: userId,
-        status: "completed", // Only completed appointments can be reviewed
+        status: "COMPLETED", // Only completed appointments can be reviewed
       },
       include: {
         reviews: true,

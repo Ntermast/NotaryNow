@@ -10,8 +10,8 @@ import { Search, CheckCircle, XCircle, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminNotariesPage() {
-  const [notaries, setNotaries] = useState([]);
-  const [filteredNotaries, setFilteredNotaries] = useState([]);
+  const [notaries, setNotaries] = useState<any[]>([]);
+  const [filteredNotaries, setFilteredNotaries] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -30,7 +30,7 @@ export default function AdminNotariesPage() {
         const data = await response.json();
         
         // Format date strings
-        const formattedNotaries = data.map(notary => ({
+        const formattedNotaries = data.map((notary: any) => ({
           ...notary,
           joinDate: new Date(notary.createdAt).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -77,7 +77,7 @@ export default function AdminNotariesPage() {
   }, [notaries, searchQuery, activeTab]);
 
   // Approve notary handler
-  const handleApproveNotary = async (id) => {
+  const handleApproveNotary = async (id: string) => {
     try {
       const response = await fetch(`/api/admin/notaries/approve/${id}`, {
         method: 'PATCH',
@@ -93,7 +93,7 @@ export default function AdminNotariesPage() {
 
       // Update local state
       setNotaries(prev =>
-        prev.map(notary =>
+        prev.map((notary: any) =>
           notary.id === id ? { ...notary, isApproved: true } : notary
         )
       );
@@ -101,12 +101,12 @@ export default function AdminNotariesPage() {
       toast.success('Notary approved successfully');
     } catch (error) {
       console.error('Error approving notary:', error);
-      toast.error(error.message || 'Failed to approve notary');
+      toast.error(error instanceof Error ? error.message : 'Failed to approve notary');
     }
   };
   
   // View notary details - for future implementation
-  const handleViewDetails = (notary) => {
+  const handleViewDetails = (notary: any) => {
     // For now, just show details in toast
     toast.info(`Viewing details for ${notary.name}`);
   };

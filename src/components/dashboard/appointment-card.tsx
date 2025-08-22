@@ -27,7 +27,7 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved': return 'bg-green-100 text-green-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -39,7 +39,7 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
     }
   };
 
-  const formatDate = (dateStr) => {
+  const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
   };
@@ -86,7 +86,7 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
                 {[...Array(5)].map((_, i) => (
                   <Star 
                     key={i} 
-                    className={`h-4 w-4 ${i < appointment.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} 
+                    className={`h-4 w-4 ${i < (appointment.rating || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} 
                   />
                 ))}
               </div>

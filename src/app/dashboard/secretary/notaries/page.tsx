@@ -202,8 +202,8 @@ export default function SecretaryNotaries() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ALL">All Locations</SelectItem>
-                        {getUniqueStates().map((state) => (
-                          <SelectItem key={state} value={state}>{state}</SelectItem>
+                        {getUniqueStates().filter(state => state).map((state) => (
+                          <SelectItem key={state} value={state!}>{state}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

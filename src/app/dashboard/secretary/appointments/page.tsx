@@ -85,7 +85,6 @@ export default function SecretaryAppointments() {
     // Apply date filter
     if (dateFilter !== "ALL") {
       const today = new Date();
-      const appointmentDate = new Date(apt.date);
       
       switch (dateFilter) {
         case "TODAY":

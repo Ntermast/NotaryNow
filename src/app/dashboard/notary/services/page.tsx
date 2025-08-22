@@ -16,8 +16,8 @@ export default function NotaryServicesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   
-  const [allServices, setAllServices] = useState([]);
-  const [notaryServices, setNotaryServices] = useState([]);
+  const [allServices, setAllServices] = useState<any[]>([]);
+  const [notaryServices, setNotaryServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [customPrices, setCustomPrices] = useState({});
 

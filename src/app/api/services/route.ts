@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     const newService = await prisma.service.create({
       data: {
         name,
-        description,
+        description: description || "",
         basePrice
       }
     });

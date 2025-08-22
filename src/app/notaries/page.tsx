@@ -10,7 +10,7 @@ import { NotaryCard } from '@/components/notary/notary-card';
 import { Search } from 'lucide-react';
 
 export default function NotarySearchPage() {
-  const [notaries, setNotaries] = useState([]);
+  const [notaries, setNotaries] = useState<any[]>([]);
   const [sortOption, setSortOption] = useState('rating');
   const [filters, setFilters] = useState({
     zipCode: '',

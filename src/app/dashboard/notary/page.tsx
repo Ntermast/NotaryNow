@@ -14,7 +14,7 @@ import { StatsCard } from "@/components/dashboard/stats-card";
 export default function NotaryDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalAppointments: 0,
     pendingAppointments: 0,
