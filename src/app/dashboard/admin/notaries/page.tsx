@@ -195,7 +195,7 @@ export default function AdminNotariesPage() {
                     </div>
                     <div>
                       <span className="text-gray-500">Hourly Rate: </span>
-                      <span>${notary.hourlyRate?.toFixed(2) || 'N/A'}</span>
+                      <span>{notary.hourlyRate ? `${notary.hourlyRate.toLocaleString()} RWF` : 'N/A'}</span>
                     </div>
                     <div className="flex gap-2">
                       <Button 
@@ -255,7 +255,7 @@ export default function AdminNotariesPage() {
                       </div>
                       <div>
                         <span className="text-gray-500">Hourly Rate: </span>
-                        <span>${notary.hourlyRate?.toFixed(2) || 'N/A'}</span>
+                        <span>{notary.hourlyRate ? `${notary.hourlyRate.toLocaleString()} RWF` : 'N/A'}</span>
                       </div>
                       {notary.bio && (
                         <div>
@@ -319,7 +319,7 @@ export default function AdminNotariesPage() {
                     </div>
                     <div>
                       <span className="text-gray-500">Hourly Rate: </span>
-                      <span>${notary.hourlyRate?.toFixed(2) || 'N/A'}</span>
+                      <span>{notary.hourlyRate ? `${notary.hourlyRate.toLocaleString()} RWF` : 'N/A'}</span>
                     </div>
                     <div className="flex gap-2">
                       <Button 
@@ -390,7 +390,7 @@ export default function AdminNotariesPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <span className="text-sm text-gray-500">Hourly Rate:</span>
-                    <p>${selectedNotary.hourlyRate?.toFixed(2) || 'Not set'}</p>
+                    <p>{selectedNotary.hourlyRate ? `${selectedNotary.hourlyRate.toLocaleString()} RWF` : 'Not set'}</p>
                   </div>
                 </div>
                 {selectedNotary.bio && (

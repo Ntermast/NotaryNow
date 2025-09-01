@@ -198,7 +198,7 @@ export default function NotaryAppointmentsPage() {
                                   <span>{formatTime(appointment.scheduledTime)}</span>
                                 </div>
                                 <div className="flex items-center text-sm font-semibold">
-                                  <span>Fee: ${appointment.totalCost}</span>
+                                  <span>Fee: {appointment.totalCost.toLocaleString()} RWF</span>
                                 </div>
                                 {appointment.notes && (
                                   <div className="text-sm mt-2">
@@ -262,7 +262,7 @@ export default function NotaryAppointmentsPage() {
                                   <span>{formatTime(appointment.scheduledTime)}</span>
                                 </div>
                                 <div className="flex items-center text-sm font-semibold">
-                                  <span>Fee: ${appointment.totalCost}</span>
+                                  <span>Fee: {appointment.totalCost.toLocaleString()} RWF</span>
                                 </div>
                                 {appointment.notes && (
                                   <div className="text-sm mt-2">
@@ -325,7 +325,7 @@ export default function NotaryAppointmentsPage() {
                                   <span>{formatTime(appointment.scheduledTime)}</span>
                                 </div>
                                 <div className="flex items-center text-sm font-semibold">
-                                  <span>Fee: ${appointment.totalCost}</span>
+                                  <span>Fee: {appointment.totalCost.toLocaleString()} RWF</span>
                                 </div>
                                 {appointment.reviews && appointment.reviews.length > 0 && (
                                   <div className="mt-2 p-3 bg-gray-50 rounded-md">
@@ -402,7 +402,7 @@ export default function NotaryAppointmentsPage() {
                                   <span>{formatTime(appointment.scheduledTime)}</span>
                                 </div>
                                 <div className="flex items-center text-sm font-semibold">
-                                  <span>Fee: ${appointment.totalCost}</span>
+                                  <span>Fee: {appointment.totalCost.toLocaleString()} RWF</span>
                                 </div>
                               </div>
                             </CardContent>

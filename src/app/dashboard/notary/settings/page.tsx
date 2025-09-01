@@ -306,29 +306,31 @@ export default function NotarySettings() {
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <Label htmlFor="state">State</Label>
+                                                        <Label htmlFor="state">District</Label>
                                                         <Input
                                                             id="state"
                                                             value={(profile as any)?.state || ''}
                                                             onChange={(e) =>
                                                                 setProfile({ ...(profile as any), state: e.target.value })
                                                             }
+                                                            placeholder="e.g., Gasabo, Nyarugenge, Kicukiro"
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <Label htmlFor="zip">ZIP Code</Label>
+                                                        <Label htmlFor="zip">Sector</Label>
                                                         <Input
                                                             id="zip"
                                                             value={(profile as any)?.zip || ''}
                                                             onChange={(e) =>
                                                                 setProfile({ ...(profile as any), zip: e.target.value })
                                                             }
+                                                            placeholder="e.g., Kimironko, Gisozi, Remera"
                                                         />
                                                     </div>
                                                 </div>
 
                                                 <div className="space-y-2">
-                                                    <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
+                                                    <Label htmlFor="hourlyRate">Hourly Rate (RWF)</Label>
                                                     <Input
                                                         id="hourlyRate"
                                                         type="number"

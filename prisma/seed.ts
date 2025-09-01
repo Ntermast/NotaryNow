@@ -4,14 +4,14 @@ import { hash } from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  // Create services
+  // Create services (prices in RWF)
   const services = [
-    { name: 'Deed Notarization', description: 'Notarization of property deeds', basePrice: 45 },
-    { name: 'Power of Attorney', description: 'Legal document authorization', basePrice: 65 },
-    { name: 'Mortgage Signing', description: 'Mortgage document signing', basePrice: 120 },
-    { name: 'Affidavit', description: 'Written sworn statement', basePrice: 35 },
-    { name: 'Will & Trust', description: 'Estate planning documents', basePrice: 95 },
-    { name: 'Certified Copies', description: 'Certified document copies', basePrice: 25 }
+    { name: 'Deed Notarization', description: 'Notarization of property deeds', basePrice: 38000 },
+    { name: 'Power of Attorney', description: 'Legal document authorization', basePrice: 55000 },
+    { name: 'Mortgage Signing', description: 'Mortgage document signing', basePrice: 102000 },
+    { name: 'Affidavit', description: 'Written sworn statement', basePrice: 30000 },
+    { name: 'Will & Trust', description: 'Estate planning documents', basePrice: 81000 },
+    { name: 'Certified Copies', description: 'Certified document copies', basePrice: 21000 }
   ];
 
   for (const service of services) {
@@ -24,10 +24,10 @@ async function main() {
 
   // Create certifications
   const certifications = [
-    { name: 'NY State Notary License', description: 'Official state notary commission' },
-    { name: 'NNA Certification', description: 'National Notary Association certification' },
+    { name: 'Rwanda Notary License', description: 'Official Rwanda notary commission' },
+    { name: 'Rwanda Bar Association Certification', description: 'Rwanda Bar Association notary certification' },
     { name: 'Background Check', description: 'Comprehensive background verification' },
-    { name: 'E&O Insurance', description: 'Errors & Omissions Insurance' }
+    { name: 'Professional Indemnity Insurance', description: 'Professional liability insurance coverage' }
   ];
 
   for (const cert of certifications) {
@@ -41,28 +41,28 @@ async function main() {
   // Create sample admin user
   const adminPassword = await hash('admin123', 10);
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@notarynow.com' },
+    where: { email: 'admin@notaryavailability.rw' },
     update: {},
     create: {
       name: 'Admin User',
-      email: 'admin@notarynow.com',
+      email: 'admin@notaryavailability.rw',
       password: adminPassword,
       role: 'ADMIN',
-      phone: '555-123-4567'
+      phone: '+250 788 000 001'
     },
   });
 
   // Create sample notary user with profile in a separate step
   const notaryPassword = await hash('notary123', 10);
   const notary = await prisma.user.upsert({
-    where: { email: 'john.smith@example.com' },
+    where: { email: 'jean.uwimana@example.rw' },
     update: {},
     create: {
-      name: 'John Smith',
-      email: 'john.smith@example.com',
+      name: 'Jean Uwimana',
+      email: 'jean.uwimana@example.rw',
       password: notaryPassword,
       role: 'NOTARY',
-      phone: '555-987-6543',
+      phone: '+250 788 123 456',
     },
   });
 
@@ -71,71 +71,75 @@ async function main() {
     where: { userId: notary.id },
     update: {
       isApproved: true,
-      address: '123 Main St, Suite 101',
-      city: 'Manhattan',
-      state: 'NY',
-      zip: '10001',
-      hourlyRate: 75,
+      address: 'KG 15 Ave, Building #23',
+      city: 'Gasabo',
+      state: 'Kigali',
+      zip: 'Kimironko',
+      hourlyRate: 64000,
       averageRating: 4.9,
-      bio: 'Experienced notary with 7 years in the industry.'
+      bio: 'Experienced notary with 7 years in the industry, serving clients across Kigali.'
     },
     create: {
       userId: notary.id,
       isApproved: true,
-      address: '123 Main St, Suite 101',
-      city: 'Manhattan',
-      state: 'NY',
-      zip: '10001',
-      hourlyRate: 75,
+      address: 'KG 15 Ave, Building #23',
+      city: 'Gasabo',
+      state: 'Kigali',
+      zip: 'Kimironko',
+      hourlyRate: 64000,
       averageRating: 4.9,
-      bio: 'Experienced notary with 7 years in the industry.'
+      bio: 'Experienced notary with 7 years in the industry, serving clients across Kigali.'
     },
   });
 
   // Get certifications
-  const nyLicense = await prisma.certification.findUnique({
-    where: { name: 'NY State Notary License' }
+  const rwandaLicense = await prisma.certification.findUnique({
+    where: { name: 'Rwanda Notary License' }
   });
   
-  const nnaCert = await prisma.certification.findUnique({
-    where: { name: 'NNA Certification' }
+  const barCert = await prisma.certification.findUnique({
+    where: { name: 'Rwanda Bar Association Certification' }
   });
 
   // Add certifications to notary
-  if (nyLicense) {
+  if (rwandaLicense) {
     await prisma.notaryCertification.upsert({
       where: {
         notaryProfileId_certificationId: {
           notaryProfileId: notaryProfile.id,
-          certificationId: nyLicense.id
+          certificationId: rwandaLicense.id
         }
       },
       update: {
-        dateObtained: new Date('2018-01-15')
+        dateObtained: new Date('2018-01-15'),
+        status: 'APPROVED'
       },
       create: {
         notaryProfileId: notaryProfile.id,
-        certificationId: nyLicense.id,
-        dateObtained: new Date('2018-01-15')
+        certificationId: rwandaLicense.id,
+        dateObtained: new Date('2018-01-15'),
+        status: 'APPROVED'
       }
     });
   }
 
-  if (nnaCert) {
+  if (barCert) {
     await prisma.notaryCertification.upsert({
       where: {
         notaryProfileId_certificationId: {
           notaryProfileId: notaryProfile.id,
-          certificationId: nnaCert.id
+          certificationId: barCert.id
         }
       },
       update: {
-        dateObtained: new Date('2019-03-20')
+        dateObtained: new Date('2019-03-20'),
+        status: 'APPROVED'
       },
       create: {
         notaryProfileId: notaryProfile.id,
-        certificationId: nnaCert.id,
-        dateObtained: new Date('2019-03-20')
+        certificationId: barCert.id,
+        dateObtained: new Date('2019-03-20'),
+        status: 'APPROVED'
       }
     });
   }

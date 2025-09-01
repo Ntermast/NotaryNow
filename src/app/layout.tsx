@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NotaryAvailability - Professional Notary Services",
-  description: "Find and book professional notary services at your fingertips. Quick, convenient, and secure.",
+  title: "NotaryAvailability - Professional Notary Services in Rwanda",
+  description: "Find and book professional notary services across Kigali and Rwanda. Quick, convenient, and secure notarization at your fingertips.",
 };
 
 export default function RootLayout({

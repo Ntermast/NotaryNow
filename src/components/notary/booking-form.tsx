@@ -270,7 +270,7 @@ export function BookingForm({ notary, onClose }) {
                     </p>
                   </div>
                   <div className="font-bold">
-                    ${service.basePrice}
+                    {service.basePrice.toLocaleString()} RWF
                   </div>
                 </div>
               </div>
@@ -325,7 +325,7 @@ export function BookingForm({ notary, onClose }) {
               </div>
               <div className="pt-2 border-t flex justify-between">
                 <span className="font-medium">Total:</span>
-                <span className="font-bold">${getServicePrice(selectedService)}</span>
+                <span className="font-bold">{getServicePrice(selectedService).toLocaleString()} RWF</span>
               </div>
             </div>
           </div>

@@ -37,7 +37,7 @@ export function HeroSection() {
                   <div className="rounded-lg bg-white/10 p-4 mb-4">
                     <div className="flex items-center gap-2 text-sm">
                       <Search className="h-4 w-4" />
-                      <span>Find notaries near: New York, NY</span>
+                      <span>Find notaries near: Kigali, Rwanda</span>
                     </div>
                   </div>
                   <Button variant="secondary" className="w-full">Search Available Notaries</Button>

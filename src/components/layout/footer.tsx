@@ -12,7 +12,7 @@ export function Footer() {
               <Calendar className="h-6 w-6 text-primary" />
               <span className="text-xl font-bold text-white">NotaryAvailability</span>
             </div>
-            <p className="text-sm text-gray-400">Professional notary services at your fingertips.</p>
+            <p className="text-sm text-gray-400">Professional notary services across Rwanda at your fingertips.</p>
           </div>
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-white">Quick Links</h3>
@@ -34,10 +34,10 @@ export function Footer() {
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-white">Contact</h3>
             <ul className="space-y-2 text-sm">
-              <li>support@notarynow.com</li>
-              <li>1-800-NOTARY</li>
-              <li>123 Business Ave, Suite 100</li>
-              <li>New York, NY 10001</li>
+              <li>support@notaryavailability.rw</li>
+              <li>+250 788 123 456</li>
+              <li>Kigali City Tower, Level 12</li>
+              <li>Kigali, Rwanda</li>
             </ul>
           </div>
         </div>

@@ -77,7 +77,7 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
             <span>{appointment.location}</span>
           </div>
           <div className="flex items-center text-sm font-semibold">
-            <span>Total Cost: ${appointment.cost}</span>
+            <span>Total Cost: {appointment.cost.toLocaleString()} RWF</span>
           </div>
           {appointment.rated && (
             <div className="flex items-center text-sm">
