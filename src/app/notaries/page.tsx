@@ -16,7 +16,7 @@ export default function NotarySearchPage() {
     zipCode: '',
     service: 'All Services',
     maxDistance: 5,
-    maxRate: 100
+    maxRate: 100000 // Updated for RWF rates
   });
   const [loading, setLoading] = useState(true);
 

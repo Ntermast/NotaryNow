@@ -10,7 +10,7 @@ export function NotaryFilter({ onFilterChange }) {
   const [zipCode, setZipCode] = useState('');
   const [selectedService, setSelectedService] = useState('All Services');
   const [maxDistance, setMaxDistance] = useState([5]);
-  const [maxRate, setMaxRate] = useState([100]);
+  const [maxRate, setMaxRate] = useState([100000]); // Updated for RWF
   const [showFilters, setShowFilters] = useState(false);
 
   const services = [
@@ -36,11 +36,11 @@ export function NotaryFilter({ onFilterChange }) {
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <div className="grid gap-4 md:grid-cols-3">
         <div>
-          <Label htmlFor="zip">ZIP Code or City</Label>
+          <Label htmlFor="zip">Sector or District</Label>
           <div className="mt-1 relative">
             <Input 
               id="zip" 
-              placeholder="Enter ZIP Code or City"
+              placeholder="Enter Sector or District"
               value={zipCode}
               onChange={(e) => setZipCode(e.target.value)}
             />
@@ -97,26 +97,26 @@ export function NotaryFilter({ onFilterChange }) {
             <div>
               <div className="flex justify-between mb-2">
                 <Label>Maximum Distance</Label>
-                <span className="text-sm">{maxDistance[0]} miles</span>
+                <span className="text-sm">{maxDistance[0]} km</span>
               </div>
               <Slider 
                 value={maxDistance} 
                 onValueChange={setMaxDistance} 
-                max={20}
-                step={0.5}
+                max={30}
+                step={1}
               />
             </div>
             
             <div>
               <div className="flex justify-between mb-2">
                 <Label>Maximum Hourly Rate</Label>
-                <span className="text-sm">${maxRate[0]}</span>
+                <span className="text-sm">{maxRate[0].toLocaleString()} RWF</span>
               </div>
               <Slider 
                 value={maxRate} 
                 onValueChange={setMaxRate} 
-                max={200}
-                step={5}
+                max={150000}
+                step={5000}
               />
             </div>
           </div>

@@ -6,7 +6,7 @@ import { z } from "zod";
 
 // Validation schema for query parameters
 const notarySearchSchema = z.object({
-  zipCode: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code format").optional(),
+  zipCode: z.string().max(50, "Location name too long").optional(), // Changed for Rwanda sectors
   service: z.string().max(100, "Service name too long").optional(),
   maxDistance: z.string().regex(/^\d+(\.\d+)?$/, "Invalid distance format").optional(),
   maxRate: z.string().regex(/^\d+(\.\d+)?$/, "Invalid rate format").optional(),
