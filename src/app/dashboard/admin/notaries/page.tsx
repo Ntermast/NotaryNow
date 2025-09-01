@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Search, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Search, CheckCircle, XCircle, Eye, Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminNotariesPage() {
@@ -15,6 +16,8 @@ export default function AdminNotariesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [selectedNotary, setSelectedNotary] = useState<any>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
 
   // Fetch notaries data
   useEffect(() => {
@@ -105,10 +108,22 @@ export default function AdminNotariesPage() {
     }
   };
   
-  // View notary details - for future implementation
-  const handleViewDetails = (notary: any) => {
-    // For now, just show details in toast
-    toast.info(`Viewing details for ${notary.name}`);
+  // View notary details
+  const handleViewDetails = async (notary: any) => {
+    try {
+      // Fetch detailed notary information including certifications
+      const response = await fetch(`/api/admin/notaries/${notary.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch notary details');
+      }
+      
+      const detailedNotary = await response.json();
+      setSelectedNotary(detailedNotary);
+      setIsDetailsDialogOpen(true);
+    } catch (error) {
+      console.error('Error fetching notary details:', error);
+      toast.error('Failed to load notary details');
+    }
   };
 
   if (loading) {
@@ -327,6 +342,137 @@ export default function AdminNotariesPage() {
           )}
         </TabsContent>
       </Tabs>
+      
+      {/* Notary Details Dialog */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Notary Details - {selectedNotary?.name}</DialogTitle>
+          </DialogHeader>
+          
+          {selectedNotary && (
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Basic Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-sm text-gray-500">Name:</span>
+                    <p>{selectedNotary.name}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Email:</span>
+                    <p>{selectedNotary.email}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Phone:</span>
+                    <p>{selectedNotary.phone || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Status:</span>
+                    <Badge className={selectedNotary.isApproved ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
+                      {selectedNotary.isApproved ? "Approved" : "Pending"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Address Information */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Address</h3>
+                <p>{selectedNotary.address}</p>
+                <p>{selectedNotary.city}, {selectedNotary.state} {selectedNotary.zip}</p>
+              </div>
+
+              {/* Professional Information */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Professional Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-sm text-gray-500">Hourly Rate:</span>
+                    <p>${selectedNotary.hourlyRate?.toFixed(2) || 'Not set'}</p>
+                  </div>
+                </div>
+                {selectedNotary.bio && (
+                  <div className="mt-4">
+                    <span className="text-sm text-gray-500">Bio:</span>
+                    <p className="mt-1">{selectedNotary.bio}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Services */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Services Offered</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedNotary.services?.map((service: string, index: number) => (
+                    <Badge key={index} variant="outline">
+                      {service}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Certifications */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Certifications</h3>
+                {selectedNotary.certifications && selectedNotary.certifications.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedNotary.certifications.map((cert: any, index: number) => (
+                      <div key={index} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{cert.name}</h4>
+                            <p className="text-sm text-gray-500">
+                              Issued: {cert.dateObtained ? new Date(cert.dateObtained).toLocaleDateString() : 'Not specified'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge className={cert.isApproved ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
+                              {cert.isApproved ? "Approved" : "Pending"}
+                            </Badge>
+                            {cert.documentUrl && (
+                              <Button size="sm" variant="outline">
+                                <FileText className="h-4 w-4 mr-1" />
+                                View Document
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">No certifications uploaded</p>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              {!selectedNotary.isApproved && (
+                <div className="flex gap-4 pt-4 border-t">
+                  <Button 
+                    className="flex-1"
+                    onClick={() => {
+                      handleApproveNotary(selectedNotary.id);
+                      setIsDetailsDialogOpen(false);
+                    }}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Approve Notary
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => setIsDetailsDialogOpen(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

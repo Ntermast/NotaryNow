@@ -20,7 +20,7 @@ export function Navbar() {
       <div className="container mx-auto max-w-7xl flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-2">
           <Calendar className="h-6 w-6 text-primary" />
-          <Link href="/" className="text-xl font-bold">NotaryNow</Link>
+          <Link href="/" className="text-xl font-bold">NotaryAvailability</Link>
         </div>
         
         <nav className="hidden md:flex items-center gap-6">

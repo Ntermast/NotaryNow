@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/auth-options";
+import { NotificationService } from "@/lib/notifications";
 import { z } from "zod";
 
 // Validation schema
@@ -195,6 +196,22 @@ export async function PATCH(
         service: true,
       },
     });
+
+    // Send notifications for status changes
+    if (status && status !== appointment.status) {
+      try {
+        await NotificationService.notifyAppointmentStatusChanged(
+          appointment.customerId,
+          appointment.notaryId,
+          id,
+          status,
+          updatedAppointment.service.name
+        );
+      } catch (notificationError) {
+        console.error("Failed to send appointment status change notifications:", notificationError);
+        // Don't fail the update if notifications fail
+      }
+    }
 
     return NextResponse.json(updatedAppointment);
   } catch (error) {

@@ -19,7 +19,7 @@ export function HeroSection() {
               <Link href="/notaries">
                 <Button size="lg" className="px-8">Find a Notary</Button>
               </Link>
-              <Link href="/notaries/join">
+              <Link href="/auth/signup">
                 <Button size="lg" variant="outline" className="px-8">Become a Notary</Button>
               </Link>
             </div>

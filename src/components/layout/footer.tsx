@@ -10,7 +10,7 @@ export function Footer() {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Calendar className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold text-white">NotaryNow</span>
+              <span className="text-xl font-bold text-white">NotaryAvailability</span>
             </div>
             <p className="text-sm text-gray-400">Professional notary services at your fingertips.</p>
           </div>
@@ -26,9 +26,9 @@ export function Footer() {
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-white">For Notaries</h3>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/notaries/join" className="hover:text-white transition-colors">Join Our Network</Link></li>
-              <li><Link href="/notaries/requirements" className="hover:text-white transition-colors">Requirements</Link></li>
-              <li><Link href="/notaries/resources" className="hover:text-white transition-colors">Resources</Link></li>
+              <li><Link href="/auth/signup" className="hover:text-white transition-colors">Join Our Network</Link></li>
+              <li><Link href="#" className="hover:text-white transition-colors">Requirements</Link></li>
+              <li><Link href="#" className="hover:text-white transition-colors">Resources</Link></li>
             </ul>
           </div>
           <div className="space-y-4">
@@ -42,7 +42,7 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-8 pt-8 border-t border-gray-800 text-center text-sm text-gray-400">
-          &copy; {new Date().getFullYear()} NotaryNow. All rights reserved.
+          &copy; {new Date().getFullYear()} NotaryAvailability. All rights reserved.
         </div>
       </div>
     </footer>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/auth-options";
+import { NotificationService } from "@/lib/notifications";
 import { z } from "zod";
 
 // Validation schemas
@@ -148,6 +149,58 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check for time slot conflicts
+    const appointmentDateTime = new Date(scheduledTime);
+    const appointmentDuration = duration || 60;
+    const appointmentEndTime = new Date(appointmentDateTime.getTime() + appointmentDuration * 60000);
+
+    // Check if notary has any overlapping appointments
+    const conflictingAppointments = await prisma.appointment.findMany({
+      where: {
+        notaryId,
+        status: {
+          in: ["PENDING", "CONFIRMED"]
+        },
+        OR: [
+          {
+            // New appointment starts during existing appointment
+            AND: [
+              { scheduledTime: { lte: appointmentDateTime } },
+              { 
+                scheduledTime: {
+                  gt: new Date(appointmentDateTime.getTime() - 60 * 60000) // 1 hour before
+                }
+              }
+            ]
+          },
+          {
+            // New appointment ends during existing appointment  
+            scheduledTime: {
+              lt: appointmentEndTime,
+              gte: appointmentDateTime
+            }
+          },
+          {
+            // New appointment completely contains existing appointment
+            AND: [
+              { scheduledTime: { gte: appointmentDateTime } },
+              { scheduledTime: { lt: appointmentEndTime } }
+            ]
+          }
+        ]
+      }
+    });
+
+    if (conflictingAppointments.length > 0) {
+      return NextResponse.json(
+        { 
+          error: "Time slot conflict", 
+          message: "The selected time slot conflicts with another appointment. Please choose a different time." 
+        },
+        { status: 409 }
+      );
+    }
+
     // Create the appointment
     const appointment = await prisma.appointment.create({
       data: {
@@ -176,6 +229,20 @@ export async function POST(request: NextRequest) {
         service: true,
       },
     });
+
+    // Send notifications
+    try {
+      await NotificationService.notifyAppointmentCreated(
+        userId,
+        notaryId,
+        appointment.id,
+        service.name,
+        new Date(scheduledTime)
+      );
+    } catch (notificationError) {
+      console.error("Failed to send appointment creation notifications:", notificationError);
+      // Don't fail the appointment creation if notifications fail
+    }
 
     return NextResponse.json(appointment);
   } catch (error) {

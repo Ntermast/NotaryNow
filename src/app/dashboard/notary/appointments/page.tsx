@@ -77,11 +77,10 @@ export default function NotaryAppointmentsPage() {
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
-      case "approved": return "bg-green-100 text-green-800";
-      case "pending": return "bg-yellow-100 text-yellow-800";
-      case "completed": return "bg-blue-100 text-blue-800";
-      case "denied": return "bg-red-100 text-red-800";
-      case "cancelled": return "bg-gray-100 text-gray-800";
+      case "CONFIRMED": return "bg-green-100 text-green-800";
+      case "PENDING": return "bg-yellow-100 text-yellow-800";
+      case "COMPLETED": return "bg-blue-100 text-blue-800";
+      case "CANCELLED": return "bg-red-100 text-red-800";
       default: return "bg-gray-100 text-gray-800";
     }
   };
@@ -110,7 +109,7 @@ export default function NotaryAppointmentsPage() {
     const upcomingAppointments = appointments.filter(app => app.status === 'CONFIRMED');
     const completedAppointments = appointments.filter(app => app.status === 'COMPLETED');
     const otherAppointments = appointments.filter(app => 
-      !['pending', 'approved', 'completed'].includes(app.status)
+      !['PENDING', 'CONFIRMED', 'COMPLETED'].includes(app.status)
     );
 
     return (
@@ -181,7 +180,7 @@ export default function NotaryAppointmentsPage() {
                                 <CardTitle>{appointment.service.name}</CardTitle>
                                 <Badge 
                                   className={getStatusBadgeClass(appointment.status)}>
-                                  Pending
+                                  {appointment.status}
                                 </Badge>
                               </div>
                               <CardDescription>
@@ -213,13 +212,13 @@ export default function NotaryAppointmentsPage() {
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => handleAppointmentStatusChange(appointment.id, "denied")}
+                                onClick={() => handleAppointmentStatusChange(appointment.id, "CANCELLED")}
                               >
                                 Decline
                               </Button>
                               <Button 
                                 size="sm"
-                                onClick={() => handleAppointmentStatusChange(appointment.id, "approved")}
+                                onClick={() => handleAppointmentStatusChange(appointment.id, "CONFIRMED")}
                               >
                                 Accept
                               </Button>
@@ -245,7 +244,7 @@ export default function NotaryAppointmentsPage() {
                               <div className="flex items-center justify-between">
                                 <CardTitle>{appointment.service.name}</CardTitle>
                                 <Badge className={getStatusBadgeClass(appointment.status)}>
-                                  Approved
+                                  {appointment.status}
                                 </Badge>
                               </div>
                               <CardDescription>
@@ -282,7 +281,7 @@ export default function NotaryAppointmentsPage() {
                               </Button>
                               <Button 
                                 size="sm"
-                                onClick={() => handleAppointmentStatusChange(appointment.id, "completed")}
+                                onClick={() => handleAppointmentStatusChange(appointment.id, "COMPLETED")}
                               >
                                 Mark as Completed
                               </Button>
@@ -308,7 +307,7 @@ export default function NotaryAppointmentsPage() {
                               <div className="flex items-center justify-between">
                                 <CardTitle>{appointment.service.name}</CardTitle>
                                 <Badge className={getStatusBadgeClass(appointment.status)}>
-                                  Completed
+                                  {appointment.status}
                                 </Badge>
                               </div>
                               <CardDescription>

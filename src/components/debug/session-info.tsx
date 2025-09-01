@@ -2,7 +2,6 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function SessionInfo() {
   const { data: session, status } = useSession();
@@ -12,23 +11,10 @@ export function SessionInfo() {
   }
   
   return (
-    <Card className="fixed bottom-4 right-4 w-80 opacity-80 hover:opacity-100 transition-opacity z-50">
-      <CardHeader className="p-4">
-        <CardTitle className="text-sm">Session Debug</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <div className="text-xs">
-          <p><strong>Status:</strong> {status}</p>
-          {session && (
-            <>
-              <p><strong>User:</strong> {session.user?.name || 'N/A'}</p>
-              <p><strong>Email:</strong> {session.user?.email || 'N/A'}</p>
-              <p><strong>Role:</strong> {session.user?.role || 'N/A'}</p>
-              <p><strong>ID:</strong> {session.user?.id || 'N/A'}</p>
-            </>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="fixed bottom-4 right-4 bg-black/70 text-white px-2 py-1 rounded text-xs opacity-20 hover:opacity-90 transition-opacity z-50 max-w-xs">
+      <div className="truncate">
+        {status === 'authenticated' ? `${session?.user?.role}: ${session?.user?.name}` : status}
+      </div>
+    </div>
   );
 }

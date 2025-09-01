@@ -87,7 +87,7 @@ export default function SignUp() {
             </div>
             <CardTitle className="text-2xl text-center">Create an Account</CardTitle>
             <CardDescription className="text-center">
-              Sign up for NotaryNow to get started
+              Sign up for NotaryAvailability to get started
             </CardDescription>
           </CardHeader>
           <CardContent>

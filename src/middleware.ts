@@ -31,16 +31,21 @@ export async function middleware(request: NextRequest) {
   // If trying to access a role-specific dashboard
   if (path.startsWith('/dashboard/')) {
     const userRole = token.role as string;
-    const requestedRole = path.split('/')[2]; // dashboard/[role]
+    const pathSegments = path.split('/');
+    const requestedRole = pathSegments[2]; // dashboard/[role]
+    
+    // If no specific role is requested (just /dashboard), redirect to user's role dashboard
+    if (!requestedRole) {
+      const correctPath = `/dashboard/${userRole.toLowerCase()}`;
+      return NextResponse.redirect(new URL(correctPath, request.url));
+    }
     
     // Normalize roles for comparison
     const normalizedUserRole = userRole.toLowerCase();
     const normalizedRequestedRole = requestedRole.toLowerCase();
     
-    // Check if user has the correct role
-    if (normalizedRequestedRole !== normalizedUserRole && 
-        // Check if the path goes beyond role (e.g., /dashboard/notary/settings)
-        path.split('/').length > 3) {
+    // Check if user has the correct role for the requested dashboard
+    if (normalizedRequestedRole !== normalizedUserRole) {
       const correctPath = `/dashboard/${normalizedUserRole}`;
       return NextResponse.redirect(new URL(correctPath, request.url));
     }
