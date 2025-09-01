@@ -38,28 +38,18 @@ export async function GET(request: NextRequest) {
     
     const { zipCode, service, maxDistance, maxRate } = validatedQuery.data;
 
-    // Build where clause
-    const where: any = {
+    // First get all approved notary profiles
+    const baseWhere: any = {
       isApproved: true,
     };
-
-    // Filter by location/zip if provided
-    if (zipCode) {
-      where.OR = [
-        { city: { contains: zipCode, mode: "insensitive" } },
-        { state: { contains: zipCode, mode: "insensitive" } },
-        { zip: { contains: zipCode, mode: "insensitive" } },
-      ];
-    }
-
-    // Filter by hourly rate if provided
+    
+    // Add rate filter to base query if provided
     if (maxRate) {
-      where.hourlyRate = { lte: parseFloat(maxRate) };
+      baseWhere.hourlyRate = { lte: parseFloat(maxRate) };
     }
 
-    // Query notary profiles
     const notaryProfiles = await prisma.notaryProfile.findMany({
-      where,
+      where: baseWhere,
       include: {
         user: {
           select: {
@@ -81,10 +71,21 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Filter by service if provided
+    // Filter by location if provided (case-insensitive post-processing for SQLite)
     let filteredProfiles = notaryProfiles;
-    if (service && service !== "All Services") {
+    if (zipCode) {
+      const searchTerm = zipCode.toLowerCase();
       filteredProfiles = notaryProfiles.filter((profile) =>
+        profile.city?.toLowerCase().includes(searchTerm) ||
+        profile.state?.toLowerCase().includes(searchTerm) ||
+        profile.zip?.toLowerCase().includes(searchTerm) ||
+        profile.address?.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Filter by service if provided
+    if (service && service !== "All Services") {
+      filteredProfiles = filteredProfiles.filter((profile) =>
         profile.notaryServices.some((ns) => ns.service.name === service)
       );
     }
