@@ -147,8 +147,8 @@ export default function SecretaryCustomers() {
   };
 
   const contactCustomer = (customer: Customer) => {
-    const subject = encodeURIComponent("NotaryNow Support");
-    const body = encodeURIComponent(`Dear ${customer.name},\n\nWe hope this message finds you well. We're reaching out to assist you with any questions or concerns you may have regarding our notary services.\n\nBest regards,\nNotaryNow Support Team`);
+    const subject = encodeURIComponent("NotaryAvailability Support");
+    const body = encodeURIComponent(`Dear ${customer.name},\n\nWe hope this message finds you well. We're reaching out to assist you with any questions or concerns you may have regarding our notary services.\n\nBest regards,\nNotaryAvailability Support Team`);
     window.open(`mailto:${customer.email}?subject=${subject}&body=${body}`, '_blank');
   };
 

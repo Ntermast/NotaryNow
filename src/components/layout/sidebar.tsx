@@ -52,7 +52,7 @@ export function Sidebar({ userRole, userName, userEmail, pendingCount = 0 }: Sid
       <div className="flex h-16 items-center border-b px-6">
         <Link href="/" className="flex items-center gap-2">
           <Calendar className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold">NotaryNow</span>
+          <span className="text-xl font-bold">NotaryAvailability</span>
         </Link>
       </div>
       <div className="flex flex-col flex-1 pt-5 pb-4 overflow-y-auto">

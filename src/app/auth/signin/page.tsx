@@ -68,7 +68,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 <Calendar className="h-6 w-6 text-primary" />
               </div>
             </div>
-            <CardTitle className="text-2xl text-center">Sign in to NotaryNow</CardTitle>
+            <CardTitle className="text-2xl text-center">Sign in to NotaryAvailability</CardTitle>
             <CardDescription className="text-center">
               Enter your email and password to access your account
             </CardDescription>

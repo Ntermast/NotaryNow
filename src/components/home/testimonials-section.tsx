@@ -4,7 +4,7 @@ import { Star, Users } from 'lucide-react';
 export function TestimonialsSection() {
   const testimonials = [
     {
-      text: "NotaryNow made getting my documents notarized so easy. I found a professional notary within minutes and had my appointment the same day!",
+      text: "NotaryAvailability made getting my documents notarized so easy. I found a professional notary within minutes and had my appointment the same day!",
       name: "Sarah Thompson",
       location: "New York, NY"
     },
@@ -14,7 +14,7 @@ export function TestimonialsSection() {
       location: "San Francisco, CA"
     },
     {
-      text: "I needed urgent notarization for a real estate closing. NotaryNow connected me with a qualified notary who accommodated my tight schedule.",
+      text: "I needed urgent notarization for a real estate closing. NotaryAvailability connected me with a qualified notary who accommodated my tight schedule.",
       name: "James Wilson",
       location: "Chicago, IL"
     }

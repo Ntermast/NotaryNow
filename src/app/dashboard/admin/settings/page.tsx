@@ -60,7 +60,7 @@ export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
   
   const [systemSettings, setSystemSettings] = useState<SystemSettings>({
-    siteName: "NotaryNow",
+    siteName: "NotaryAvailability",
     siteDescription: "Professional notary services platform",
     contactEmail: "contact@notarynow.com",
     supportEmail: "support@notarynow.com",

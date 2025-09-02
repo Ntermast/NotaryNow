@@ -108,10 +108,10 @@ export default function NotaryDashboard() {
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
-      case "approved": return "bg-green-100 text-green-800";
-      case "pending": return "bg-yellow-100 text-yellow-800";
-      case "completed": return "bg-blue-100 text-blue-800";
-      case "denied": return "bg-red-100 text-red-800";
+      case "CONFIRMED": return "bg-green-100 text-green-800";
+      case "PENDING": return "bg-yellow-100 text-yellow-800";
+      case "COMPLETED": return "bg-blue-100 text-blue-800";
+      case "CANCELLED": return "bg-red-100 text-red-800";
       default: return "bg-gray-100 text-gray-800";
     }
   };
@@ -169,7 +169,7 @@ export default function NotaryDashboard() {
                 />
                 <StatsCard
                   title="Revenue"
-                  value={`$${stats.revenue}`}
+                  value={`${stats.revenue.toLocaleString()} RWF`}
                   icon={DollarSign}
                 />
                 <StatsCard
@@ -258,7 +258,7 @@ export default function NotaryDashboard() {
                                   </span>
                                 </div>
                                 <div className="flex items-center text-sm font-semibold">
-                                  <span>Fee: ${appointment.totalCost}</span>
+                                  <span>Fee: {appointment.totalCost.toLocaleString()} RWF</span>
                                 </div>
                               </div>
                             </CardContent>
@@ -269,7 +269,7 @@ export default function NotaryDashboard() {
                                 onClick={() => 
                                   handleAppointmentStatusChange(
                                     appointment.id, 
-                                    "denied"
+                                    "CANCELLED"
                                   )
                                 }
                               >
@@ -280,7 +280,7 @@ export default function NotaryDashboard() {
                                 onClick={() => 
                                   handleAppointmentStatusChange(
                                     appointment.id, 
-                                    "approved"
+                                    "CONFIRMED"
                                   )
                                 }
                               >
@@ -345,7 +345,7 @@ export default function NotaryDashboard() {
                                   </span>
                                 </div>
                                 <div className="flex items-center text-sm font-semibold">
-                                  <span>Fee: ${appointment.totalCost}</span>
+                                  <span>Fee: {appointment.totalCost.toLocaleString()} RWF</span>
                                 </div>
                               </div>
                             </CardContent>
@@ -361,7 +361,7 @@ export default function NotaryDashboard() {
                                 onClick={() => 
                                   handleAppointmentStatusChange(
                                     appointment.id, 
-                                    "completed"
+                                    "COMPLETED"
                                   )
                                 }
                               >
@@ -426,7 +426,7 @@ export default function NotaryDashboard() {
                                   </span>
                                 </div>
                                 <div className="flex items-center text-sm font-semibold">
-                                  <span>Fee: ${appointment.totalCost}</span>
+                                  <span>Fee: {appointment.totalCost.toLocaleString()} RWF</span>
                                 </div>
                                 {appointment.reviews.length > 0 && (
                                   <div className="flex items-center mt-2">
