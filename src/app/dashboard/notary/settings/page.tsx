@@ -93,7 +93,7 @@ export default function NotarySettings() {
         setIsSaving(true);
 
         try {
-            const response = await fetch("/api/notary/profile", {
+            const response = await fetch("/api/notaries/profile", {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",

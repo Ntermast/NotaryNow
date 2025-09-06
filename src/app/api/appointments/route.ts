@@ -85,6 +85,14 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             email: true,
+            notaryProfile: {
+              select: {
+                address: true,
+                city: true,
+                state: true,
+                zip: true,
+              },
+            },
           },
         },
         service: true,

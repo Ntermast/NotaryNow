@@ -10,35 +10,38 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { BellIcon, SettingsIcon, CalendarRange, DollarSign, TrendingUp, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Mock data - in a real application, this would come from an API
-const generateMockRevenueData = () => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const currentMonth = new Date().getMonth();
-  
-  return months.slice(currentMonth - 5, currentMonth + 1).map((month, index) => {
-    return {
-      month,
-      revenue: Math.floor(Math.random() * 800) + 200, // Random revenue between $200 and $1000
-      appointments: Math.floor(Math.random() * 15) + 5, // Random appointments between 5 and 20
-    };
-  });
-};
-
-const mockRevenueData = generateMockRevenueData();
+interface ReportsData {
+  summary: {
+    totalRevenue: number;
+    totalAppointments: number;
+    completedAppointments: number;
+    pendingAppointments: number;
+    confirmedAppointments: number;
+    averageRevenue: number;
+    completionRate: number;
+    revenueGrowth: number;
+  };
+  chartData: Array<{
+    period: string;
+    revenue: number;
+    appointments: number;
+    completed: number;
+  }>;
+  topServices: Array<{
+    name: string;
+    count: number;
+    revenue: number;
+  }>;
+}
 
 export default function NotaryReportsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   
-  const [revenueData, setRevenueData] = useState(mockRevenueData);
+  const [reportsData, setReportsData] = useState<ReportsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState('month'); // 'week', 'month', 'year'
+  const [dateRange, setDateRange] = useState('month'); // 'week', 'month', 'quarter', 'year'
   const [reportType, setReportType] = useState('revenue'); // 'revenue', 'appointments', 'services'
-  
-  // Calculated statistics
-  const totalRevenue = revenueData.reduce((sum, item) => sum + item.revenue, 0);
-  const totalAppointments = revenueData.reduce((sum, item) => sum + item.appointments, 0);
-  const averageRevenue = Math.round(totalRevenue / revenueData.length);
 
   // Redirect if not authenticated or not a notary
   useEffect(() => {
@@ -49,17 +52,33 @@ export default function NotaryReportsPage() {
     }
   }, [status, session, router]);
 
-  // Simulate API call to fetch data
+  // Fetch reports data
   useEffect(() => {
-    if (status === "authenticated") {
+    if (status === "authenticated" && session.user.role === "NOTARY") {
+      fetchReportsData();
+    }
+  }, [status, session, dateRange, reportType]);
+
+  const fetchReportsData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/notaries/reports?period=${dateRange}&type=${reportType}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch reports data');
+      }
+      const data = await response.json();
+      setReportsData(data);
+    } catch (error) {
+      console.error('Error fetching reports data:', error);
+      toast.error('Failed to load reports data');
+    } finally {
       setLoading(false);
     }
-  }, [status]);
+  };
 
-  const handleDateRangeChange = (range) => {
+  const handleDateRangeChange = (range: string) => {
     setDateRange(range);
-    // In a real app, this would fetch new data for the selected range
-    toast.info(`Showing data for the last ${range}`);
+    toast.info(`Loading data for the last ${range}...`);
   };
 
   const handleExportReport = () => {
@@ -115,9 +134,11 @@ export default function NotaryReportsPage() {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${totalRevenue}</div>
+                    <div className="text-2xl font-bold">
+                      {reportsData ? `${reportsData.summary.totalRevenue.toLocaleString()} RWF` : '0 RWF'}
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      +12% from last period
+                      {reportsData && reportsData.summary.revenueGrowth > 0 ? '+' : ''}{reportsData?.summary.revenueGrowth.toFixed(1) || 0}% from last period
                     </p>
                   </CardContent>
                 </Card>
@@ -129,9 +150,9 @@ export default function NotaryReportsPage() {
                     <CalendarRange className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{totalAppointments}</div>
+                    <div className="text-2xl font-bold">{reportsData?.summary.totalAppointments || 0}</div>
                     <p className="text-xs text-muted-foreground">
-                      +5% from last period
+                      {reportsData?.summary.completionRate.toFixed(1) || 0}% completion rate
                     </p>
                   </CardContent>
                 </Card>
@@ -143,9 +164,11 @@ export default function NotaryReportsPage() {
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${averageRevenue}</div>
+                    <div className="text-2xl font-bold">
+                      {reportsData ? `${reportsData.summary.averageRevenue.toLocaleString()} RWF` : '0 RWF'}
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      +2% from last period
+                      Per completed appointment
                     </p>
                   </CardContent>
                 </Card>
@@ -157,6 +180,7 @@ export default function NotaryReportsPage() {
                   <TabsList>
                     <TabsTrigger value="week">Last Week</TabsTrigger>
                     <TabsTrigger value="month">Last Month</TabsTrigger>
+                    <TabsTrigger value="quarter">Last Quarter</TabsTrigger>
                     <TabsTrigger value="year">Last Year</TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -186,18 +210,20 @@ export default function NotaryReportsPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {revenueData.map((item, index) => (
+                        {reportsData?.chartData.map((item, index) => (
                           <tr key={index} className="border-b">
-                            <td className="py-2 px-4">{item.month}</td>
-                            <td className="py-2 px-4 text-right">${item.revenue}</td>
+                            <td className="py-2 px-4">{item.period}</td>
+                            <td className="py-2 px-4 text-right">{item.revenue.toLocaleString()} RWF</td>
                             <td className="py-2 px-4 text-right">{item.appointments}</td>
                           </tr>
                         ))}
-                        <tr className="font-medium">
-                          <td className="py-2 px-4">Total</td>
-                          <td className="py-2 px-4 text-right">${totalRevenue}</td>
-                          <td className="py-2 px-4 text-right">{totalAppointments}</td>
-                        </tr>
+                        {reportsData && (
+                          <tr className="font-medium">
+                            <td className="py-2 px-4">Total</td>
+                            <td className="py-2 px-4 text-right">{reportsData.summary.totalRevenue.toLocaleString()} RWF</td>
+                            <td className="py-2 px-4 text-right">{reportsData.summary.totalAppointments}</td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                     <p className="mt-4 text-sm text-gray-500">

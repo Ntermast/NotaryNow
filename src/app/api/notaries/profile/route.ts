@@ -9,9 +9,9 @@ import { z } from "zod";
 const updateNotaryProfileSchema = z.object({
   address: z.string().min(1, "Address is required").max(200, "Address too long"),
   city: z.string().min(1, "City is required").max(100, "City name too long"),
-  state: z.string().min(2, "State is required").max(2, "State must be 2 characters"),
-  zip: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code format"),
-  hourlyRate: z.number().min(0, "Rate must be positive").max(1000, "Rate too high"),
+  state: z.string().min(2, "Province/State is required").max(50, "Province name too long"),
+  zip: z.string().min(1, "Postal code is required").max(20, "Postal code too long"),
+  hourlyRate: z.number().min(0, "Rate must be positive").max(1000000, "Rate too high"),
   bio: z.string().max(1000, "Bio too long").optional(),
 });
 

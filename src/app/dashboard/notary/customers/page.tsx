@@ -10,48 +10,21 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { BellIcon, SettingsIcon, Search, UserRound, Phone, Mail, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Mock customer data - would be fetched from the API in a real application
-const MOCK_CUSTOMERS = [
-  {
-    id: '1',
-    name: 'Jane Doe',
-    email: 'jane.doe@example.com',
-    phone: '(555) 123-4567',
-    appointmentsCount: 3,
-    lastAppointment: '2025-03-01T14:30:00Z'
-  },
-  {
-    id: '2',
-    name: 'John Smith',
-    email: 'john.smith@example.com',
-    phone: '(555) 987-6543',
-    appointmentsCount: 1,
-    lastAppointment: '2025-02-15T10:00:00Z'
-  },
-  {
-    id: '3',
-    name: 'Alice Johnson',
-    email: 'alice.johnson@example.com',
-    phone: '(555) 567-8901',
-    appointmentsCount: 2,
-    lastAppointment: '2025-02-28T16:45:00Z'
-  },
-  {
-    id: '4',
-    name: 'Robert Williams',
-    email: 'robert.williams@example.com',
-    phone: '(555) 234-5678',
-    appointmentsCount: 1,
-    lastAppointment: '2025-01-20T09:15:00Z'
-  }
-];
+interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  appointmentsCount: number;
+  lastAppointment: string;
+}
 
 export default function NotaryCustomersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   
-  const [customers, setCustomers] = useState(MOCK_CUSTOMERS);
-  const [filteredCustomers, setFilteredCustomers] = useState(MOCK_CUSTOMERS);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -64,15 +37,30 @@ export default function NotaryCustomersPage() {
     }
   }, [status, session, router]);
 
-  // Simulate API call to fetch customers
+  // Fetch customers from API
   useEffect(() => {
-    if (status === "authenticated") {
-      // This would be a real API call in a production app
-      setTimeout(() => {
-        setLoading(false);
-      }, 1000);
+    if (status === "authenticated" && session.user.role === "NOTARY") {
+      fetchCustomers();
     }
-  }, [status]);
+  }, [status, session]);
+
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/notaries/customers');
+      if (!response.ok) {
+        throw new Error('Failed to fetch customers');
+      }
+      const customerData = await response.json();
+      setCustomers(customerData);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      toast.error('Failed to load customers');
+      setCustomers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter customers based on search query
   useEffect(() => {
@@ -83,13 +71,13 @@ export default function NotaryCustomersPage() {
       const filtered = customers.filter(customer => 
         customer.name.toLowerCase().includes(query) || 
         customer.email.toLowerCase().includes(query) ||
-        customer.phone.includes(query)
+        (customer.phone && customer.phone.includes(query))
       );
       setFilteredCustomers(filtered);
     }
   }, [searchQuery, customers]);
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
       year: 'numeric', 
@@ -98,11 +86,11 @@ export default function NotaryCustomersPage() {
     });
   };
 
-  const handleViewCustomerAppointments = (customerId) => {
+  const handleViewCustomerAppointments = (customerId: string) => {
     router.push(`/dashboard/notary/appointments?customer=${customerId}`);
   };
 
-  const handleContactCustomer = (email) => {
+  const handleContactCustomer = (email: string) => {
     // This would open an email client or contact form in a real application
     window.open(`mailto:${email}`);
   };
@@ -191,7 +179,7 @@ export default function NotaryCustomersPage() {
                               </div>
                               <div className="flex items-center text-sm text-gray-600">
                                 <Phone className="h-4 w-4 mr-2 text-gray-400" />
-                                {customer.phone}
+                                {customer.phone || 'No phone provided'}
                               </div>
                             </div>
                             <div className="col-span-3">
