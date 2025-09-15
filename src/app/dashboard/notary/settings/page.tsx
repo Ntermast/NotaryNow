@@ -280,6 +280,11 @@ export default function NotarySettings() {
                                             <CardTitle>Profile Information</CardTitle>
                                             <CardDescription>
                                                 Update your profile information and address
+                                                {profile?.isApproved && (
+                                                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+                                                        ✓ Your profile is approved. Some fields are now locked for security.
+                                                    </div>
+                                                )}
                                             </CardDescription>
                                         </CardHeader>
                                         <form onSubmit={handleProfileUpdate}>
@@ -293,6 +298,7 @@ export default function NotarySettings() {
                                                             onChange={(e) =>
                                                                 setProfile({ ...(profile as any), address: e.target.value })
                                                             }
+                                                            disabled={profile?.isApproved}
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
@@ -303,6 +309,7 @@ export default function NotarySettings() {
                                                             onChange={(e) =>
                                                                 setProfile({ ...(profile as any), city: e.target.value })
                                                             }
+                                                            disabled={profile?.isApproved}
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
@@ -314,6 +321,7 @@ export default function NotarySettings() {
                                                                 setProfile({ ...(profile as any), state: e.target.value })
                                                             }
                                                             placeholder="e.g., Gasabo, Nyarugenge, Kicukiro"
+                                                            disabled={profile?.isApproved}
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
@@ -325,6 +333,7 @@ export default function NotarySettings() {
                                                                 setProfile({ ...(profile as any), zip: e.target.value })
                                                             }
                                                             placeholder="e.g., Kimironko, Gisozi, Remera"
+                                                            disabled={profile?.isApproved}
                                                         />
                                                     </div>
                                                 </div>
@@ -372,6 +381,11 @@ export default function NotarySettings() {
                                             <CardTitle>Services Offered</CardTitle>
                                             <CardDescription>
                                                 Select the services you provide to customers
+                                                {profile?.isApproved && (
+                                                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+                                                        ✓ Service selection is locked after approval for security.
+                                                    </div>
+                                                )}
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent>
@@ -386,6 +400,7 @@ export default function NotarySettings() {
                                                             onCheckedChange={(checked) =>
                                                                 handleServiceToggle(service.id, checked === true)
                                                             }
+                                                            disabled={profile?.isApproved}
                                                         />
                                                         <div className="grid gap-1.5">
                                                             <Label
@@ -425,10 +440,11 @@ export default function NotarySettings() {
                                                                 </p>
                                                             </div>
                                                             <div>
-                                                                <Button 
-                                                                    variant="outline" 
+                                                                <Button
+                                                                    variant="outline"
                                                                     size="sm"
                                                                     onClick={() => openCertificationDialog(cert)}
+                                                                    disabled={profile?.isApproved}
                                                                 >
                                                                     {profile.certifications.some(
                                                                         (c) => c.certificationId === cert.id

@@ -65,8 +65,12 @@ export default function SignUp() {
         throw new Error(data.error || "Failed to create account");
       }
 
-      // Registration successful, redirect to sign-in
-      router.push("/auth/signin?registered=true");
+      // Registration successful - redirect based on role
+      if (formData.role === "NOTARY") {
+        router.push("/notary/onboarding?step=1");
+      } else {
+        router.push("/auth/signin?registered=true");
+      }
     } catch (error) {
       console.error("Registration error:", error);
       setError(error instanceof Error ? error.message : "An error occurred");

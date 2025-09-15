@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { Calendar, Clock, MapPin, Star } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
@@ -144,9 +145,9 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
                   <label htmlFor="comment" className="text-sm font-medium">
                     Comments
                   </label>
-                  <textarea
+                  <Textarea
                     id="comment"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-24 p-2"
+                    className="mt-1 h-24"
                     placeholder="Share your experience..."
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}

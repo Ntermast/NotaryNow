@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -52,14 +52,7 @@ export default function NotaryReportsPage() {
     }
   }, [status, session, router]);
 
-  // Fetch reports data
-  useEffect(() => {
-    if (status === "authenticated" && session.user.role === "NOTARY") {
-      fetchReportsData();
-    }
-  }, [status, session, dateRange, reportType]);
-
-  const fetchReportsData = async () => {
+  const fetchReportsData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/notaries/reports?period=${dateRange}&type=${reportType}`);
@@ -74,7 +67,14 @@ export default function NotaryReportsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange, reportType]);
+
+  // Fetch reports data
+  useEffect(() => {
+    if (status === "authenticated" && session.user.role === "NOTARY") {
+      fetchReportsData();
+    }
+  }, [status, session, dateRange, reportType, fetchReportsData]);
 
   const handleDateRangeChange = (range: string) => {
     setDateRange(range);

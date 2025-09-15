@@ -59,7 +59,7 @@ export function BookingForm({ notary, onClose }) {
           setSelectedServiceId(notaryServices[0].id);
         }
       } catch (error) {
-        console.error('Error fetching services:', error);
+        toast.error('Failed to load services');
       }
     }
     
@@ -73,13 +73,8 @@ export function BookingForm({ notary, onClose }) {
   };
 
   const handleBookingSubmit = async () => {
-    console.log("=== BOOKING ATTEMPT START ===");
-    console.log("Authentication status:", status);
-    console.log("Session data:", session);
-    
     if (status !== 'authenticated') {
       // Redirect to login if not authenticated
-      console.log("User not authenticated, redirecting to login");
       toast.error('Please sign in to book an appointment');
       router.push('/auth/signin');
       return;
@@ -88,14 +83,6 @@ export function BookingForm({ notary, onClose }) {
     setLoading(true);
     
     try {
-      console.log("Booking with:", { 
-        selectedDate, 
-        selectedTime, 
-        notaryId: notary.id, 
-        serviceId: selectedServiceId,
-        userRole: session?.user?.role,
-        userId: session?.user?.id
-      });
       
       // Parse the time string to extract hours and minutes
       if (!selectedTime) {
@@ -135,8 +122,6 @@ export function BookingForm({ notary, onClose }) {
         notes: '',
       };
       
-      console.log("Making API request with body:", requestBody);
-      
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
@@ -145,22 +130,21 @@ export function BookingForm({ notary, onClose }) {
         body: JSON.stringify(requestBody),
       });
 
-      console.log("API Response status:", response.status);
-      console.log("API Response headers:", Object.fromEntries(response.headers.entries()));
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("API Error response:", errorData);
-        console.error("Full error details:", {
-          status: response.status,
-          statusText: response.statusText,
-          errorData
-        });
+
+        // Handle specific conflict error
+        if (response.status === 409) {
+          toast.error(errorData.message || 'This time slot is no longer available. Please select a different time.');
+          setBookingStage(1); // Go back to date/time selection
+          setLoading(false);
+          return;
+        }
+
         throw new Error(errorData.error || 'Failed to book appointment');
       }
       
       const appointment = await response.json();
-      console.log("Appointment created:", appointment);
 
       // Show success message
       setBookingSuccess(true);
@@ -172,13 +156,8 @@ export function BookingForm({ notary, onClose }) {
         if (onClose) onClose();
       }, 3000);
     } catch (error) {
-      console.error('=== BOOKING ERROR ===');
-      console.error('Error booking appointment:', error);
-      console.error('Error type:', typeof error);
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
       toast.error(error instanceof Error ? error.message : 'Failed to book appointment');
     } finally {
-      console.log("=== BOOKING ATTEMPT END ===");
       setLoading(false);
     }
   };

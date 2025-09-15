@@ -22,6 +22,9 @@ export const authOptions: AuthOptions = {
             where: {
               email: credentials.email,
             },
+            include: {
+              notaryProfile: true,
+            },
           });
 
           if (!user) {
@@ -35,6 +38,11 @@ export const authOptions: AuthOptions = {
 
           if (!isPasswordValid) {
             throw new Error("Invalid email or password");
+          }
+
+          // Check if notary is approved
+          if (user.role === "NOTARY" && user.notaryProfile && !user.notaryProfile.isApproved) {
+            throw new Error("Your notary account is pending approval. Please wait for admin confirmation.");
           }
 
           return {

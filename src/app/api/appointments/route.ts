@@ -20,18 +20,14 @@ const createAppointmentSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("=== APPOINTMENTS API GET REQUEST ===");
     const session = await getServerSession(authOptions);
-    console.log("Session:", session?.user);
-    
+
     if (!session) {
-      console.log("No session, returning 401");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const userId = session.user.id;
     const userRole = session.user.role;
-    console.log("User ID:", userId, "Role:", userRole);
 
     // Parse and validate query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -39,13 +35,10 @@ export async function GET(request: NextRequest) {
     const queryParams = {
       status: statusParam === null ? undefined : statusParam,
     };
-    console.log("Query params:", queryParams);
-    
+
     const validatedQuery = appointmentQuerySchema.safeParse(queryParams);
-    console.log("Query validation result:", validatedQuery);
-    
+
     if (!validatedQuery.success) {
-      console.error("Query validation failed:", validatedQuery.error);
       return NextResponse.json(
         { error: "Invalid query parameters", details: validatedQuery.error.issues },
         { status: 400 }
@@ -103,11 +96,8 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    console.log("Found appointments:", appointments.length);
-    console.log("Appointments data:", appointments);
     return NextResponse.json(appointments);
   } catch (error) {
-    console.error("Error fetching appointments:", error);
     return NextResponse.json(
       { error: "Failed to fetch appointments" },
       { status: 500 }
@@ -135,15 +125,6 @@ export async function POST(request: NextRequest) {
     }
 
     const { notaryId, serviceId, scheduledTime, duration, notes } = validatedData.data;
-
-    console.log("Creating appointment with:", {
-      userId,
-      notaryId,
-      serviceId,
-      scheduledTime,
-      duration,
-      notes
-    });
 
     // Get service price
     const service = await prisma.service.findUnique({
@@ -248,13 +229,11 @@ export async function POST(request: NextRequest) {
         new Date(scheduledTime)
       );
     } catch (notificationError) {
-      console.error("Failed to send appointment creation notifications:", notificationError);
       // Don't fail the appointment creation if notifications fail
     }
 
     return NextResponse.json(appointment);
   } catch (error) {
-    console.error("Error creating appointment:", error);
     return NextResponse.json(
       { error: "Failed to create appointment" },
       { status: 500 }

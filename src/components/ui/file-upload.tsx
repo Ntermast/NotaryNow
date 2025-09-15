@@ -8,7 +8,7 @@ import { Upload, X, FileText, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 interface FileUploadProps {
-  onFileUpload: (fileUrl: string, fileName: string) => void;
+  onFileUpload: (fileUrl: string, fileName?: string) => void;
   certificationId: string;
   currentFile?: string;
   disabled?: boolean;
