@@ -7,7 +7,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, CheckCircle, XCircle, Eye, Download, FileText } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Search, CheckCircle, XCircle, Eye, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminNotariesPage() {
@@ -18,6 +19,21 @@ export default function AdminNotariesPage() {
   const [loading, setLoading] = useState(true);
   const [selectedNotary, setSelectedNotary] = useState<any>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [notaryToReject, setNotaryToReject] = useState<any>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [isSubmittingRejection, setIsSubmittingRejection] = useState(false);
+
+  const renderStatusBadge = (status: string) => {
+    switch (status) {
+      case 'APPROVED':
+        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+      case 'REJECTED':
+        return <Badge className="bg-red-100 text-red-800">Declined</Badge>;
+      default:
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending Review</Badge>;
+    }
+  };
 
   // Fetch notaries data
   useEffect(() => {
@@ -61,9 +77,11 @@ export default function AdminNotariesPage() {
     
     // Apply tab filter
     if (activeTab === 'pending') {
-      filtered = filtered.filter(notary => !notary.isApproved);
+      filtered = filtered.filter(notary => notary.approvalStatus === 'PENDING');
     } else if (activeTab === 'approved') {
-      filtered = filtered.filter(notary => notary.isApproved);
+      filtered = filtered.filter(notary => notary.approvalStatus === 'APPROVED');
+    } else if (activeTab === 'rejected') {
+      filtered = filtered.filter(notary => notary.approvalStatus === 'REJECTED');
     }
     
     // Apply search
@@ -97,7 +115,9 @@ export default function AdminNotariesPage() {
       // Update local state
       setNotaries(prev =>
         prev.map((notary: any) =>
-          notary.id === id ? { ...notary, isApproved: true } : notary
+          notary.id === id
+            ? { ...notary, isApproved: true, approvalStatus: 'APPROVED', rejectionReason: null }
+            : notary
         )
       );
 
@@ -105,6 +125,66 @@ export default function AdminNotariesPage() {
     } catch (error) {
       console.error('Error approving notary:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to approve notary');
+    }
+  };
+  
+  const openRejectDialog = (notary: any) => {
+    setNotaryToReject(notary);
+    setRejectionReason('');
+    setIsRejectDialogOpen(true);
+  };
+
+  const handleRejectNotary = async () => {
+    if (!notaryToReject) return;
+
+    setIsSubmittingRejection(true);
+    try {
+      const response = await fetch(`/api/admin/notaries/reject/${notaryToReject.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason: rejectionReason.trim() || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to reject notary');
+      }
+
+      setNotaries((prev) =>
+        prev.map((notary: any) =>
+          notary.id === notaryToReject.id
+            ? {
+                ...notary,
+                isApproved: false,
+                approvalStatus: 'REJECTED',
+                rejectionReason: rejectionReason.trim() || null,
+              }
+            : notary
+        )
+      );
+
+      if (selectedNotary && selectedNotary.id === notaryToReject.id) {
+        setSelectedNotary({
+          ...selectedNotary,
+          isApproved: false,
+          approvalStatus: 'REJECTED',
+          rejectionReason: rejectionReason.trim() || null,
+        });
+      }
+
+      toast.success('Notary application declined');
+      setIsRejectDialogOpen(false);
+      setNotaryToReject(null);
+      setRejectionReason('');
+    } catch (error) {
+      console.error('Error rejecting notary:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to reject notary');
+    } finally {
+      setIsSubmittingRejection(false);
     }
   };
   
@@ -155,13 +235,28 @@ export default function AdminNotariesPage() {
           <TabsTrigger value="all">All Notaries</TabsTrigger>
           <TabsTrigger value="pending">
             Pending Approval
-            {notaries.filter(n => !n.isApproved).length > 0 && (
+            {notaries.filter(n => n.approvalStatus === 'PENDING').length > 0 && (
               <Badge className="ml-2 bg-yellow-500 text-white">
-                {notaries.filter(n => !n.isApproved).length}
+                {notaries.filter(n => n.approvalStatus === 'PENDING').length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="approved">Approved</TabsTrigger>
+          <TabsTrigger value="approved">
+            Approved
+            {notaries.filter(n => n.approvalStatus === 'APPROVED').length > 0 && (
+              <Badge className="ml-2 bg-green-500 text-white">
+                {notaries.filter(n => n.approvalStatus === 'APPROVED').length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="rejected">
+            Declined
+            {notaries.filter(n => n.approvalStatus === 'REJECTED').length > 0 && (
+              <Badge className="ml-2 bg-red-500 text-white">
+                {notaries.filter(n => n.approvalStatus === 'REJECTED').length}
+              </Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="all" className="space-y-4">
@@ -171,20 +266,14 @@ export default function AdminNotariesPage() {
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle>{notary.name}</CardTitle>
-                    <Badge 
-                      className={notary.isApproved ? 
-                        "bg-green-100 text-green-800" : 
-                        "bg-yellow-100 text-yellow-800"}
-                    >
-                      {notary.isApproved ? "Approved" : "Pending"}
-                    </Badge>
+                    {renderStatusBadge(notary.approvalStatus)}
                   </div>
                   <CardDescription>
                     {notary.email} • {notary.location}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex flex-wrap gap-4 justify-between text-sm">
                     <div>
                       <span className="text-gray-500">Joined: </span>
                       <span>{notary.joinDate}</span>
@@ -195,7 +284,7 @@ export default function AdminNotariesPage() {
                     </div>
                     <div>
                       <span className="text-gray-500">Hourly Rate: </span>
-                      <span>{notary.hourlyRate ? `${notary.hourlyRate.toLocaleString()} RWF` : 'N/A'}</span>
+                      <span>{notary.hourlyRate ? `${Number(notary.hourlyRate).toLocaleString()} RWF` : 'N/A'}</span>
                     </div>
                     <div className="flex gap-2">
                       <Button 
@@ -206,7 +295,7 @@ export default function AdminNotariesPage() {
                         <Eye className="h-4 w-4 mr-1" />
                         View Details
                       </Button>
-                      {!notary.isApproved && (
+                      {notary.approvalStatus === 'PENDING' && (
                         <Button 
                           size="sm"
                           onClick={() => handleApproveNotary(notary.id)}
@@ -215,8 +304,23 @@ export default function AdminNotariesPage() {
                           Approve
                         </Button>
                       )}
+                      {notary.approvalStatus === 'PENDING' && (
+                        <Button 
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => openRejectDialog(notary)}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Decline
+                        </Button>
+                      )}
                     </div>
                   </div>
+                  {notary.approvalStatus === 'REJECTED' && notary.rejectionReason && (
+                    <div className="mt-3 text-xs text-red-600 bg-red-50 border border-red-100 rounded-md p-3">
+                      <span className="font-medium">Rejection reason:</span> {notary.rejectionReason}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))
@@ -234,9 +338,7 @@ export default function AdminNotariesPage() {
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle>{notary.name}</CardTitle>
-                    <Badge className="bg-yellow-100 text-yellow-800">
-                      Pending
-                    </Badge>
+                    {renderStatusBadge(notary.approvalStatus)}
                   </div>
                   <CardDescription>
                     {notary.email} • {notary.location}
@@ -251,11 +353,11 @@ export default function AdminNotariesPage() {
                       </div>
                       <div>
                         <span className="text-gray-500">Address: </span>
-                        <span>{notary.address}, {notary.city}, {notary.state} {notary.zip}</span>
+                        <span>{notary.address}, {notary.location} {notary.zip}</span>
                       </div>
                       <div>
                         <span className="text-gray-500">Hourly Rate: </span>
-                        <span>{notary.hourlyRate ? `${notary.hourlyRate.toLocaleString()} RWF` : 'N/A'}</span>
+                        <span>{notary.hourlyRate ? `${Number(notary.hourlyRate).toLocaleString()} RWF` : 'N/A'}</span>
                       </div>
                       {notary.bio && (
                         <div>
@@ -280,6 +382,14 @@ export default function AdminNotariesPage() {
                         <CheckCircle className="h-4 w-4 mr-1" />
                         Approve
                       </Button>
+                      <Button 
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => openRejectDialog(notary)}
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Decline
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -299,9 +409,7 @@ export default function AdminNotariesPage() {
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle>{notary.name}</CardTitle>
-                    <Badge className="bg-green-100 text-green-800">
-                      Approved
-                    </Badge>
+                    {renderStatusBadge(notary.approvalStatus)}
                   </div>
                   <CardDescription>
                     {notary.email} • {notary.location}
@@ -319,7 +427,7 @@ export default function AdminNotariesPage() {
                     </div>
                     <div>
                       <span className="text-gray-500">Hourly Rate: </span>
-                      <span>{notary.hourlyRate ? `${notary.hourlyRate.toLocaleString()} RWF` : 'N/A'}</span>
+                      <span>{notary.hourlyRate ? `${Number(notary.hourlyRate).toLocaleString()} RWF` : 'N/A'}</span>
                     </div>
                     <div className="flex gap-2">
                       <Button 
@@ -338,6 +446,58 @@ export default function AdminNotariesPage() {
           ) : (
             <div className="text-center py-10">
               <p className="text-gray-500">No approved notaries found</p>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="rejected" className="space-y-4">
+          {filteredNotaries.length > 0 ? (
+            filteredNotaries.map((notary) => (
+              <Card key={notary.id}>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle>{notary.name}</CardTitle>
+                    {renderStatusBadge(notary.approvalStatus)}
+                  </div>
+                  <CardDescription>
+                    {notary.email} • {notary.location}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-500">Joined: </span>
+                      <span>{notary.joinDate}</span>
+                    </div>
+                    {notary.rejectionReason && (
+                      <div className="p-3 rounded-md bg-red-50 border border-red-100 text-red-700 text-sm">
+                        <span className="font-medium">Reason:</span> {notary.rejectionReason}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleViewDetails(notary)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View Details
+                      </Button>
+                      <Button 
+                        size="sm"
+                        onClick={() => handleApproveNotary(notary.id)}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Approve
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-gray-500">No declined notaries</p>
             </div>
           )}
         </TabsContent>
@@ -370,11 +530,16 @@ export default function AdminNotariesPage() {
                   </div>
                   <div>
                     <span className="text-sm text-gray-500">Status:</span>
-                    <Badge className={selectedNotary.isApproved ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
-                      {selectedNotary.isApproved ? "Approved" : "Pending"}
-                    </Badge>
+                    <div className="mt-1">
+                      {renderStatusBadge(selectedNotary.approvalStatus)}
+                    </div>
                   </div>
                 </div>
+                {selectedNotary.approvalStatus === 'REJECTED' && selectedNotary.rejectionReason && (
+                  <div className="mt-3 rounded-md border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+                    <span className="font-medium">Rejection reason:</span> {selectedNotary.rejectionReason}
+                  </div>
+                )}
               </div>
 
               {/* Address Information */}
@@ -390,7 +555,7 @@ export default function AdminNotariesPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <span className="text-sm text-gray-500">Hourly Rate:</span>
-                    <p>{selectedNotary.hourlyRate ? `${selectedNotary.hourlyRate.toLocaleString()} RWF` : 'Not set'}</p>
+                    <p>{selectedNotary.hourlyRate ? `${Number(selectedNotary.hourlyRate).toLocaleString()} RWF` : 'Not set'}</p>
                   </div>
                 </div>
                 {selectedNotary.bio && (
@@ -432,9 +597,11 @@ export default function AdminNotariesPage() {
                               {cert.isApproved ? "Approved" : "Pending"}
                             </Badge>
                             {cert.documentUrl && (
-                              <Button size="sm" variant="outline">
-                                <FileText className="h-4 w-4 mr-1" />
-                                View Document
+                              <Button size="sm" variant="outline" asChild>
+                                <a href={cert.documentUrl} target="_blank" rel="noopener noreferrer">
+                                  <FileText className="h-4 w-4 mr-1" />
+                                  View Document
+                                </a>
                               </Button>
                             )}
                           </div>
@@ -448,29 +615,92 @@ export default function AdminNotariesPage() {
               </div>
 
               {/* Action Buttons */}
-              {!selectedNotary.isApproved && (
-                <div className="flex gap-4 pt-4 border-t">
-                  <Button 
+              <div className="flex gap-4 pt-4 border-t">
+                {selectedNotary.approvalStatus !== 'APPROVED' && (
+                  <Button
                     className="flex-1"
-                    onClick={() => {
-                      handleApproveNotary(selectedNotary.id);
+                    onClick={async () => {
+                      await handleApproveNotary(selectedNotary.id);
                       setIsDetailsDialogOpen(false);
                     }}
                   >
                     <CheckCircle className="h-4 w-4 mr-1" />
                     Approve Notary
                   </Button>
-                  <Button 
-                    variant="outline" 
+                )}
+                {selectedNotary.approvalStatus === 'PENDING' && (
+                  <Button
                     className="flex-1"
-                    onClick={() => setIsDetailsDialogOpen(false)}
+                    variant="destructive"
+                    onClick={() => {
+                      openRejectDialog(selectedNotary);
+                      setIsDetailsDialogOpen(false);
+                    }}
                   >
-                    Close
+                    <XCircle className="h-4 w-4 mr-1" />
+                    Decline
                   </Button>
-                </div>
-              )}
+                )}
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setIsDetailsDialogOpen(false)}
+                >
+                  Close
+                </Button>
+              </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isRejectDialogOpen}
+        onOpenChange={(open) => {
+          setIsRejectDialogOpen(open);
+          if (!open) {
+            setNotaryToReject(null);
+            setRejectionReason('');
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Decline Notary Application</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Provide a short explanation for declining{' '}
+              <span className="font-semibold">{notaryToReject?.name}</span>.
+              The notary will see this message.
+            </p>
+            <Textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Reason for declining (optional but recommended)"
+              rows={4}
+            />
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsRejectDialogOpen(false);
+                  setNotaryToReject(null);
+                  setRejectionReason('');
+                }}
+                disabled={isSubmittingRejection}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleRejectNotary}
+                disabled={isSubmittingRejection}
+              >
+                {isSubmittingRejection ? 'Declining...' : 'Decline Notary'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

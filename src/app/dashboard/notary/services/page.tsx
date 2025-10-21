@@ -19,7 +19,7 @@ export default function NotaryServicesPage() {
   const [allServices, setAllServices] = useState<any[]>([]);
   const [notaryServices, setNotaryServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [customPrices, setCustomPrices] = useState({});
+  const [customPrices, setCustomPrices] = useState<Record<string, string>>({});
 
   // Redirect if not authenticated or not a notary
   useEffect(() => {
@@ -49,10 +49,10 @@ export default function NotaryServicesPage() {
           // Extract notary services and set initial custom prices
           setNotaryServices(profileData.notaryServices || []);
           
-          const prices = {};
-          (profileData.notaryServices || []).forEach(service => {
-            if (service.customPrice) {
-              prices[service.serviceId] = service.customPrice;
+          const prices: Record<string, string> = {};
+          (profileData.notaryServices || []).forEach((service: any) => {
+            if (service.customPrice !== null && service.customPrice !== undefined) {
+              prices[service.serviceId] = service.customPrice.toString();
             }
           });
           setCustomPrices(prices);
@@ -82,51 +82,119 @@ export default function NotaryServicesPage() {
     return customPrices[serviceId] || getBasePrice(serviceId);
   };
 
-  const handleServiceToggle = async (serviceId, isChecked) => {
+  const handleServiceToggle = async (serviceId: string, isChecked: boolean | string) => {
+    const shouldAdd = isChecked === true;
     try {
-      const method = isChecked ? 'POST' : 'DELETE';
-      const response = await fetch(`/api/notaries/services/${serviceId}`, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      if (shouldAdd) {
+        const response = await fetch(`/api/notaries/services/${serviceId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-      if (!response.ok) throw new Error(`Failed to ${isChecked ? 'add' : 'remove'} service`);
-      
-      // Update local state
-      if (isChecked) {
-        const newService = { serviceId, customPrice: null };
-        setNotaryServices([...notaryServices, newService]);
-      } else {
-        setNotaryServices(notaryServices.filter(service => service.serviceId !== serviceId));
-        
-        // Remove custom price if it exists
-        if (customPrices[serviceId]) {
-          const newPrices = { ...customPrices };
-          delete newPrices[serviceId];
-          setCustomPrices(newPrices);
+        if (!response.ok && response.status !== 400) {
+          throw new Error(`Failed to add service`);
         }
+
+        if (response.ok) {
+          const createdService = await response.json();
+          setNotaryServices((prev) => [...prev, createdService]);
+          if (createdService.customPrice !== null && createdService.customPrice !== undefined) {
+            setCustomPrices((prev) => ({
+              ...prev,
+              [serviceId]: createdService.customPrice,
+            }));
+          }
+        }
+
+        toast.success('Service added successfully');
+      } else {
+        const response = await fetch(`/api/notaries/services/${serviceId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to remove service');
+        }
+
+        setNotaryServices((prev) =>
+          prev.filter((service) => service.serviceId !== serviceId)
+        );
+
+        if (customPrices[serviceId]) {
+          setCustomPrices((prev) => {
+            const next = { ...prev };
+            delete next[serviceId];
+            return next;
+          });
+        }
+
+        toast.success('Service removed successfully');
       }
-      
-      toast.success(`Service ${isChecked ? 'added' : 'removed'} successfully`);
     } catch (error) {
-      console.error(`Error ${isChecked ? 'adding' : 'removing'} service:`, error);
-      toast.error(`Failed to ${isChecked ? 'add' : 'remove'} service`);
+      console.error(`Error ${shouldAdd ? 'adding' : 'removing'} service:`, error);
+      toast.error(`Failed to ${shouldAdd ? 'add' : 'remove'} service`);
     }
   };
 
-  const handlePriceChange = (serviceId, newPrice) => {
-    setCustomPrices({
-      ...customPrices,
-      [serviceId]: newPrice,
-    });
+  const handlePriceChange = (serviceId: string, value: string) => {
+    setCustomPrices((prev) => ({
+      ...prev,
+      [serviceId]: value,
+    }));
   };
 
-  const saveCustomPrice = async (serviceId) => {
+  const saveCustomPrice = async (serviceId: string) => {
     try {
-      // This would be implemented with a real API endpoint
-      // For now, just show a success message
+      const rawValue = customPrices[serviceId];
+      const payload: Record<string, number> = {};
+
+      if (rawValue && rawValue.trim() !== '') {
+        const parsed = parseFloat(rawValue);
+        if (Number.isNaN(parsed)) {
+          toast.error('Please enter a valid price');
+          return;
+        }
+        payload.customPrice = parsed;
+      }
+
+      const response = await fetch(`/api/notaries/services/${serviceId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update custom price');
+      }
+
+      const updatedService = await response.json();
+
+      setNotaryServices((prev) =>
+        prev.map((service) =>
+          service.serviceId === serviceId ? updatedService : service
+        )
+      );
+
+      if (payload.customPrice === undefined) {
+        setCustomPrices((prev) => {
+          const next = { ...prev };
+          delete next[serviceId];
+          return next;
+        });
+      } else {
+        setCustomPrices((prev) => ({
+          ...prev,
+          [serviceId]: payload.customPrice!.toString(),
+        }));
+      }
+
       toast.success('Custom price updated successfully');
     } catch (error) {
       console.error('Error updating custom price:', error);
@@ -200,7 +268,9 @@ export default function NotaryServicesPage() {
                               </Label>
                               <div className="flex items-center">
                                 <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
-                                <span className="font-medium">{service.basePrice}</span>
+                                <span className="font-medium">
+                                  {Number(service.basePrice).toLocaleString()} RWF
+                                </span>
                               </div>
                             </div>
                             <p className="text-sm text-gray-500">
@@ -210,14 +280,18 @@ export default function NotaryServicesPage() {
                         </div>
                         
                         {isServiceSelected(service.id) && (
-                          <div className="mt-4 pt-4 border-t">
+                          <div className="mt-4 pt-4 border-t space-y-2">
                             <div className="flex justify-between items-center">
                               <div className="flex items-center">
                                 <Info className="h-4 w-4 text-blue-500 mr-2" />
-                                <span className="text-sm text-gray-600">You can set a custom price for this service</span>
+                                <span className="text-sm text-gray-600">
+                                  You can set a custom price for this service
+                                </span>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <Label htmlFor={`price-${service.id}`} className="text-sm">Custom Price:</Label>
+                                <Label htmlFor={`price-${service.id}`} className="text-sm">
+                                  Custom Price:
+                                </Label>
                                 <div className="relative">
                                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
                                   <Input
@@ -225,13 +299,14 @@ export default function NotaryServicesPage() {
                                     type="number"
                                     min="0"
                                     step="0.01"
-                                    className="pl-8 w-24"
-                                    value={getCustomPrice(service.id)}
-                                    onChange={(e) => handlePriceChange(service.id, parseFloat(e.target.value))}
+                                    className="pl-8 w-28"
+                                    value={customPrices[service.id] ?? ''}
+                                    placeholder={getBasePrice(service.id).toLocaleString()}
+                                    onChange={(e) => handlePriceChange(service.id, e.target.value)}
                                   />
                                 </div>
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   variant="outline"
                                   onClick={() => saveCustomPrice(service.id)}
                                 >
@@ -239,6 +314,10 @@ export default function NotaryServicesPage() {
                                 </Button>
                               </div>
                             </div>
+                            <p className="text-xs text-gray-500">
+                              Leave blank to charge the base price (
+                              {getBasePrice(service.id).toLocaleString()} RWF).
+                            </p>
                           </div>
                         )}
                       </div>

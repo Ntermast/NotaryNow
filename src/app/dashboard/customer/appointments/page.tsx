@@ -204,7 +204,7 @@ export default function CustomerAppointmentsPage() {
                               date: appointment.scheduledTime,
                               time: new Date(appointment.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                               location: appointment.notary.notaryProfile ? 
-                                `${appointment.notary.notaryProfile.city}, ${appointment.notary.notaryProfile.state}` : 
+                                `${appointment.notary.notaryProfile.city} District, ${appointment.notary.notaryProfile.zip} Sector` : 
                                 appointment.notes || 'Location not specified',
                               status: appointment.status,
                               cost: appointment.totalCost
@@ -239,7 +239,7 @@ export default function CustomerAppointmentsPage() {
                               date: appointment.scheduledTime,
                               time: new Date(appointment.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                               location: appointment.notary.notaryProfile ? 
-                                `${appointment.notary.notaryProfile.city}, ${appointment.notary.notaryProfile.state}` : 
+                                `${appointment.notary.notaryProfile.city} District, ${appointment.notary.notaryProfile.zip} Sector` : 
                                 appointment.notes || 'Location not specified',
                               status: appointment.status,
                               cost: appointment.totalCost,

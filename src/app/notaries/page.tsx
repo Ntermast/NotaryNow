@@ -60,11 +60,26 @@ export default function NotarySearchPage() {
 
   const sortNotaries = (notariesList, option) => {
     return [...notariesList].sort((a, b) => {
-      if (option === 'distance') return a.distance - b.distance;
-      if (option === 'rating') return b.rating - a.rating;
-      if (option === 'price') return a.hourlyRate - b.hourlyRate;
-      if (option === 'experience') return b.experience - a.experience;
-      return 0;
+      switch (option) {
+        case 'distance': {
+          const distanceA = typeof a.distanceKm === 'number' ? a.distanceKm : Number.POSITIVE_INFINITY;
+          const distanceB = typeof b.distanceKm === 'number' ? b.distanceKm : Number.POSITIVE_INFINITY;
+          return distanceA - distanceB;
+        }
+        case 'rating': {
+          const ratingA = typeof a.rating === 'number' ? a.rating : 0;
+          const ratingB = typeof b.rating === 'number' ? b.rating : 0;
+          return ratingB - ratingA;
+        }
+        case 'price': {
+          return (a.startingPrice ?? Number.MAX_SAFE_INTEGER) - (b.startingPrice ?? Number.MAX_SAFE_INTEGER);
+        }
+        case 'experience': {
+          return (b.experienceYears ?? 0) - (a.experienceYears ?? 0);
+        }
+        default:
+          return 0;
+      }
     });
   };
 

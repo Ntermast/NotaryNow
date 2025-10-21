@@ -58,6 +58,8 @@ export async function GET(
       phone: notary.phone,
       createdAt: notary.createdAt,
       isApproved: notary.notaryProfile?.isApproved || false,
+      approvalStatus: notary.notaryProfile?.approvalStatus || "PENDING",
+      rejectionReason: notary.notaryProfile?.rejectionReason || null,
       
       // Profile information
       address: notary.notaryProfile?.address,

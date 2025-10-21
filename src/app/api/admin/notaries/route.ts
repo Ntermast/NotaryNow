@@ -17,19 +17,21 @@ export async function GET(request: NextRequest) {
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
-    const filter = searchParams.get("filter"); // 'all', 'pending', 'approved'
+    const filter = searchParams.get("filter"); // 'all', 'pending', 'approved', 'rejected'
 
     // Build where clause
     const where: any = {
       user: {
-        role: "NOTARY"
-      }
+        role: "NOTARY",
+      },
     };
 
     if (filter === "pending") {
-      where.isApproved = false;
+      where.approvalStatus = "PENDING";
     } else if (filter === "approved") {
-      where.isApproved = true;
+      where.approvalStatus = "APPROVED";
+    } else if (filter === "rejected") {
+      where.approvalStatus = "REJECTED";
     }
 
     // Get all notary profiles
@@ -66,6 +68,8 @@ export async function GET(request: NextRequest) {
       name: profile.user.name,
       email: profile.user.email,
       isApproved: profile.isApproved,
+      approvalStatus: profile.approvalStatus,
+      rejectionReason: profile.rejectionReason,
       location: `${profile.city}, ${profile.state}`,
       address: profile.address,
       zip: profile.zip,

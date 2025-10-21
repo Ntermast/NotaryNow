@@ -44,6 +44,8 @@ function NotaryOnboardingContent() {
   const [loading, setLoading] = useState(false);
   const [availableServices, setAvailableServices] = useState([]);
   const [availableCertifications, setAvailableCertifications] = useState([]);
+  const [uploadingCertifications, setUploadingCertifications] = useState<Record<string, boolean>>({});
+  const [certificationUploadErrors, setCertificationUploadErrors] = useState<Record<string, string | null>>({});
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     address: '',
     city: '',
@@ -126,6 +128,8 @@ function NotaryOnboardingContent() {
           documentUrl: ''
         }]
       }));
+      setUploadingCertifications(prev => ({ ...prev, [certId]: false }));
+      setCertificationUploadErrors(prev => ({ ...prev, [certId]: null }));
     }
   };
 
@@ -138,6 +142,39 @@ function NotaryOnboardingContent() {
           : cert
       )
     }));
+  };
+
+  const handleCertificationDocumentUpload = async (certId: string, file: File) => {
+    if (!file) return;
+
+    setUploadingCertifications(prev => ({ ...prev, [certId]: true }));
+    setCertificationUploadErrors(prev => ({ ...prev, [certId]: null }));
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("certificationId", certId);
+
+      const response = await fetch("/api/upload/certifications", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to upload document");
+      }
+
+      const data = await response.json();
+      handleCertificationUpdate(certId, "documentUrl", data.fileUrl);
+      toast.success("Document uploaded successfully");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to upload document";
+      setCertificationUploadErrors(prev => ({ ...prev, [certId]: message }));
+      toast.error(message);
+    } finally {
+      setUploadingCertifications(prev => ({ ...prev, [certId]: false }));
+    }
   };
 
   const nextStep = () => {
@@ -177,28 +214,36 @@ function NotaryOnboardingContent() {
 
       // Add services
       for (const serviceId of onboardingData.selectedServices) {
-        await fetch(`/api/notaries/services/${session?.user.id}`, {
+        const response = await fetch(`/api/notaries/services/${serviceId}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ serviceId }),
         });
+
+        if (!response.ok && response.status !== 400) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to assign service');
+        }
       }
 
       // Add certifications
       for (const cert of onboardingData.certifications) {
-        await fetch(`/api/notaries/certifications/${session?.user.id}`, {
+        const response = await fetch(`/api/notaries/certifications/${cert.certificationId}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            certificationId: cert.certificationId,
             dateObtained: cert.dateObtained ? new Date(cert.dateObtained).toISOString() : null,
-            documentUrl: cert.documentUrl
+            documentUrl: cert.documentUrl || undefined
           }),
         });
+
+        if (!response.ok && response.status !== 400) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to attach certification');
+        }
       }
 
       toast.success('Profile submitted for review! You will be notified once approved.');
@@ -381,6 +426,35 @@ function NotaryOnboardingContent() {
                             onChange={(e) => handleCertificationUpdate(cert.id, 'dateObtained', e.target.value)}
                             className="mt-1"
                           />
+                          <Label className="text-sm mt-4 block">Upload Supporting Document</Label>
+                          <Input
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleCertificationDocumentUpload(cert.id, file);
+                              }
+                            }}
+                            className="mt-1"
+                            disabled={uploadingCertifications[cert.id]}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Accepted formats: PDF, JPG, PNG. Max size 5MB.
+                          </p>
+                          {uploadingCertifications[cert.id] && (
+                            <p className="text-xs text-blue-600 mt-1">Uploading...</p>
+                          )}
+                          {certificationUploadErrors[cert.id] && (
+                            <p className="text-xs text-red-600 mt-1">
+                              {certificationUploadErrors[cert.id]}
+                            </p>
+                          )}
+                          {onboardingData.certifications.find(c => c.certificationId === cert.id)?.documentUrl && !uploadingCertifications[cert.id] && (
+                            <p className="text-xs text-green-600 mt-1">
+                              Document uploaded successfully.
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -435,7 +509,14 @@ function NotaryOnboardingContent() {
                             <CheckCircle className="h-4 w-4 text-green-600" />
                             <span>{(certification as any).name}</span>
                             {cert.dateObtained && (
-                              <span className="text-gray-500">({new Date(cert.dateObtained).toLocaleDateString()})</span>
+                              <span className="text-gray-500">
+                                ({new Date(cert.dateObtained).toLocaleDateString()})
+                              </span>
+                            )}
+                            {cert.documentUrl && (
+                              <Badge variant="outline" className="text-xs">
+                                Document uploaded
+                              </Badge>
                             )}
                           </div>
                         ) : null;

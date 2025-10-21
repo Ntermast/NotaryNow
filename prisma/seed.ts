@@ -71,6 +71,7 @@ async function main() {
     where: { userId: notary.id },
     update: {
       isApproved: true,
+      approvalStatus: 'APPROVED',
       address: 'KG 15 Ave, Building #23',
       city: 'Gasabo',
       state: 'Kigali',
@@ -82,6 +83,7 @@ async function main() {
     create: {
       userId: notary.id,
       isApproved: true,
+      approvalStatus: 'APPROVED',
       address: 'KG 15 Ave, Building #23',
       city: 'Gasabo',
       state: 'Kigali',

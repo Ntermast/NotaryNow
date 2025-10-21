@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/auth-options";
-import { writeFile } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { z } from "zod";
 
@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
     
     // Create the file path
     const uploadDir = path.join(process.cwd(), "public", "uploads", "certifications");
+    await mkdir(uploadDir, { recursive: true });
     const filePath = path.join(uploadDir, fileName);
 
     // Convert file to buffer and save

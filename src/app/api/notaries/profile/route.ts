@@ -34,8 +34,16 @@ export async function GET(request: NextRequest) {
         userId: userId,
       },
       include: {
-        notaryServices: true,
-        certifications: true,
+        notaryServices: {
+          include: {
+            service: true,
+          },
+        },
+        certifications: {
+          include: {
+            certification: true,
+          },
+        },
       },
     });
 

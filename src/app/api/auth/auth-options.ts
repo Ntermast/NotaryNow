@@ -41,8 +41,19 @@ export const authOptions: AuthOptions = {
           }
 
           // Check if notary is approved
-          if (user.role === "NOTARY" && user.notaryProfile && !user.notaryProfile.isApproved) {
-            throw new Error("Your notary account is pending approval. Please wait for admin confirmation.");
+          if (user.role === "NOTARY" && user.notaryProfile) {
+            if (user.notaryProfile.approvalStatus === "PENDING") {
+              throw new Error("Your notary account is pending approval. Please wait for admin confirmation.");
+            }
+
+            if (user.notaryProfile.approvalStatus === "REJECTED") {
+              const reason = user.notaryProfile.rejectionReason
+                ? ` Reason: ${user.notaryProfile.rejectionReason}.`
+                : "";
+              throw new Error(
+                `Your notary application was declined.${reason} Please contact support if you believe this is a mistake.`
+              );
+            }
           }
 
           return {

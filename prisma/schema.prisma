@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -30,136 +27,10 @@ enum CertificationStatus {
   REJECTED
 }
 
-model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  password      String
-  role          UserRole  @default(CUSTOMER)
-  phone         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  notaryProfile NotaryProfile?
-  appointments  Appointment[] @relation("CustomerAppointments")
-  notaryAppointments Appointment[] @relation("NotaryAppointments")
-  reviews       Review[]
-  documents     Document[] @relation("CustomerDocuments")
-  notifications Notification[]
-}
-
-model NotaryProfile {
-  id            String    @id @default(cuid())
-  userId        String    @unique
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  isApproved    Boolean   @default(false)
-  address       String
-  city          String
-  state         String
-  zip           String
-  hourlyRate    Float
-  averageRating Float     @default(0)
-  bio           String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  // Relations to certification and service tables
-  certifications NotaryCertification[]
-  notaryServices NotaryService[]
-}
-
-model Certification {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  notaries    NotaryCertification[]
-}
-
-model NotaryCertification {
-  id              String              @id @default(cuid())
-  notaryProfileId String
-  notaryProfile   NotaryProfile       @relation(fields: [notaryProfileId], references: [id], onDelete: Cascade)
-  certificationId String
-  certification   Certification       @relation(fields: [certificationId], references: [id], onDelete: Cascade)
-  dateObtained    DateTime?
-  documentUrl     String?
-  status          CertificationStatus @default(PENDING)
-  createdAt       DateTime            @default(now())
-  
-  @@unique([notaryProfileId, certificationId])
-}
-
-model Service {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  description String
-  basePrice   Float
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  appointments Appointment[]
-  notaries     NotaryService[]
-}
-
-model NotaryService {
-  id              String        @id @default(cuid())
-  notaryProfileId String
-  notaryProfile   NotaryProfile @relation(fields: [notaryProfileId], references: [id], onDelete: Cascade)
-  serviceId       String
-  service         Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  customPrice     Float?       // Optional custom price that overrides the base price
-  createdAt       DateTime      @default(now())
-  
-  @@unique([notaryProfileId, serviceId])
-}
-
-model Appointment {
-  id          String   @id @default(cuid())
-  customerId  String
-  customer    User     @relation("CustomerAppointments", fields: [customerId], references: [id])
-  notaryId    String
-  notary      User     @relation("NotaryAppointments", fields: [notaryId], references: [id])
-  serviceId   String
-  service     Service  @relation(fields: [serviceId], references: [id])
-  scheduledTime DateTime
-  duration    Int      // in minutes
-  status      AppointmentStatus @default(PENDING)
-  totalCost   Float
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  reviews     Review[]
-  documents   Document[] @relation("AppointmentDocuments")
-}
-
-model Review {
-  id            String   @id @default(cuid())
-  appointmentId String
-  appointment   Appointment @relation(fields: [appointmentId], references: [id])
-  customerId    String
-  customer      User     @relation(fields: [customerId], references: [id])
-  rating        Int      // 1-5
-  comment       String?
-  createdAt     DateTime @default(now())
-}
-
-model Document {
-  id            String   @id @default(cuid())
-  customerId    String
-  customer      User     @relation("CustomerDocuments", fields: [customerId], references: [id])
-  fileName      String
-  originalName  String
-  fileSize      Int
-  fileType      String
-  fileUrl       String
-  appointmentId String?
-  appointment   Appointment? @relation("AppointmentDocuments", fields: [appointmentId], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+enum NotaryApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum NotificationType {
@@ -173,16 +44,154 @@ enum NotificationType {
   SYSTEM_ALERT
 }
 
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(CUSTOMER)
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  notaryProfile      NotaryProfile?
+  appointments       Appointment[]  @relation("CustomerAppointments")
+  notaryAppointments Appointment[]  @relation("NotaryAppointments")
+  reviews            Review[]
+  documents          Document[]     @relation("CustomerDocuments")
+  notifications      Notification[]
+}
+
+model NotaryProfile {
+  id              String               @id @default(cuid())
+  userId          String               @unique
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isApproved      Boolean              @default(false)
+  approvalStatus  NotaryApprovalStatus @default(PENDING)
+  rejectionReason String?
+  address         String
+  city            String
+  state           String
+  zip             String
+  hourlyRate      Float
+  averageRating   Float                @default(0)
+  bio             String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  certifications NotaryCertification[]
+  notaryServices NotaryService[]
+}
+
+model Certification {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  notaries NotaryCertification[]
+}
+
+model NotaryCertification {
+  id              String              @id @default(cuid())
+  notaryProfileId String
+  certificationId String
+  dateObtained    DateTime?
+  documentUrl     String?
+  status          CertificationStatus @default(PENDING)
+  createdAt       DateTime            @default(now())
+
+  notaryProfile NotaryProfile @relation(fields: [notaryProfileId], references: [id], onDelete: Cascade)
+  certification Certification @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+
+  @@unique([notaryProfileId, certificationId])
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  basePrice   Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  appointments Appointment[]
+  notaries     NotaryService[]
+}
+
+model NotaryService {
+  id              String   @id @default(cuid())
+  notaryProfileId String
+  serviceId       String
+  customPrice     Float?
+  createdAt       DateTime @default(now())
+
+  notaryProfile NotaryProfile @relation(fields: [notaryProfileId], references: [id], onDelete: Cascade)
+  service       Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([notaryProfileId, serviceId])
+}
+
+model Appointment {
+  id            String            @id @default(cuid())
+  customerId    String
+  notaryId      String
+  serviceId     String
+  scheduledTime DateTime
+  duration      Int
+  status        AppointmentStatus @default(PENDING)
+  totalCost     Float
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  customer  User       @relation("CustomerAppointments", fields: [customerId], references: [id])
+  notary    User       @relation("NotaryAppointments", fields: [notaryId], references: [id])
+  service   Service    @relation(fields: [serviceId], references: [id])
+  reviews   Review[]
+  documents Document[] @relation("AppointmentDocuments")
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  appointmentId String
+  customerId    String
+  rating        Int
+  comment       String?
+  createdAt     DateTime @default(now())
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  customer    User        @relation(fields: [customerId], references: [id])
+}
+
+model Document {
+  id            String   @id @default(cuid())
+  customerId    String
+  fileName      String
+  originalName  String
+  fileSize      Int
+  fileType      String
+  fileUrl       String
+  appointmentId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  customer    User         @relation("CustomerDocuments", fields: [customerId], references: [id])
+  appointment Appointment? @relation("AppointmentDocuments", fields: [appointmentId], references: [id])
+}
+
 model Notification {
-  id          String           @id @default(cuid())
-  userId      String
-  user        User             @relation(fields: [userId], references: [id])
-  type        NotificationType
-  title       String
-  message     String
-  read        Boolean          @default(false)
-  actionUrl   String?
-  metadata    String?          // JSON string for additional data
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean          @default(false)
+  actionUrl String?
+  metadata  String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
 }

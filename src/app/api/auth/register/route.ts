@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
         data: {
           userId: user.id,
           isApproved: false, // Requires admin approval
+          approvalStatus: "PENDING",
           address: "",
           city: "",
           state: "",

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Calendar, Clock } from 'lucide-react';
@@ -14,11 +14,17 @@ export function BookingForm({ notary, onClose }) {
   const [bookingStage, setBookingStage] = useState(1); // 1: date & time, 2: service, 3: confirmation
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [selectedService, setSelectedService] = useState<any>(null);
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
-  const [services, setServices] = useState<any[]>([]);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(() => {
+    return notary.services?.[0]?.id ?? null;
+  });
   const [loading, setLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+
+  const services = useMemo(() => notary.services ?? [], [notary.services]);
+  const selectedService = useMemo(
+    () => services.find((service) => service.id === selectedServiceId) ?? null,
+    [services, selectedServiceId]
+  );
 
   // Generate available dates (next 14 days)
   const availableDates = Array.from({ length: 14 }, (_, i) => {
@@ -36,41 +42,6 @@ export function BookingForm({ notary, onClose }) {
     "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM",
     "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM"
   ];
-
-  // Fetch notary's services with prices
-  useEffect(() => {
-    async function fetchServices() {
-      try {
-        // First, fetch all available services
-        const servicesResponse = await fetch('/api/services');
-        if (!servicesResponse.ok) throw new Error('Failed to fetch services');
-        const allServices = await servicesResponse.json();
-        
-        // Filter services to only those the notary offers
-        const notaryServices = allServices.filter(service => 
-          notary.services.includes(service.name)
-        );
-        
-        setServices(notaryServices);
-        
-        // Set the first service as selected by default if available
-        if (notaryServices.length > 0) {
-          setSelectedService(notaryServices[0].name);
-          setSelectedServiceId(notaryServices[0].id);
-        }
-      } catch (error) {
-        toast.error('Failed to load services');
-      }
-    }
-    
-    fetchServices();
-  }, [notary.services]);
-
-  // Get price for a service
-  const getServicePrice = (serviceName) => {
-    const service = services.find(s => s.name === serviceName);
-    return service ? service.basePrice : 0;
-  };
 
   const handleBookingSubmit = async () => {
     if (status !== 'authenticated') {
@@ -105,13 +76,11 @@ export function BookingForm({ notary, onClose }) {
       }
       
       // Create a date object with the correct local time
-      if (!selectedDate) {
+      if (!selectedDate || !selectedServiceId) {
         throw new Error('No date selected');
       }
       const date = new Date(selectedDate + 'T00:00:00');
       date.setHours(hours, parseInt(minutes), 0, 0);
-      
-      console.log("Calculated date object:", date);
       
       // Create appointment
       const requestBody = {
@@ -232,28 +201,41 @@ export function BookingForm({ notary, onClose }) {
         <>
           <Label className="mb-2 block">Select Service</Label>
           <div className="space-y-2">
-            {services.map((service) => (
-              <div 
-                key={service.id} 
-                className={`p-4 border rounded-lg cursor-pointer ${selectedService === service.name ? 'border-primary bg-primary/5' : 'hover:bg-gray-50'}`}
-                onClick={() => {
-                  setSelectedService(service.name);
-                  setSelectedServiceId(service.id);
-                }}
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h4 className="font-medium">{service.name}</h4>
-                    <p className="text-sm text-gray-500">
-                      {service.description}
-                    </p>
+            {services.length > 0 ? (
+              services.map((service) => {
+                const isActive = selectedServiceId === service.id;
+                return (
+                  <div
+                    key={service.id}
+                    className={`p-4 border rounded-lg cursor-pointer transition ${
+                      isActive ? 'border-primary bg-primary/5' : 'hover:bg-gray-50'
+                    }`}
+                    onClick={() => setSelectedServiceId(service.id)}
+                  >
+                    <div className="flex justify-between items-center gap-4">
+                      <div>
+                        <h4 className="font-medium">{service.name}</h4>
+                        {service.description && (
+                          <p className="text-sm text-gray-500">{service.description}</p>
+                        )}
+                      </div>
+                      <div className="font-bold whitespace-nowrap">
+                        {service.price.toLocaleString()} RWF
+                      </div>
+                    </div>
+                    {service.customPrice !== null && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Base price: {service.basePrice.toLocaleString()} RWF
+                      </p>
+                    )}
                   </div>
-                  <div className="font-bold">
-                    {service.basePrice.toLocaleString()} RWF
-                  </div>
-                </div>
+                );
+              })
+            ) : (
+              <div className="p-4 border rounded-lg bg-yellow-50 text-sm text-yellow-800">
+                This notary has not published their services yet.
               </div>
-            ))}
+            )}
           </div>
           
           <div className="mt-4 flex justify-between">
@@ -266,7 +248,7 @@ export function BookingForm({ notary, onClose }) {
             <Button 
               type="button" 
               onClick={() => setBookingStage(3)}
-              disabled={!selectedService}
+              disabled={!selectedServiceId}
             >
               Next
             </Button>
@@ -286,7 +268,7 @@ export function BookingForm({ notary, onClose }) {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Service:</span>
-                <span className="font-medium">{selectedService}</span>
+                <span className="font-medium">{selectedService?.name ?? 'Not selected'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Date:</span>
@@ -300,11 +282,13 @@ export function BookingForm({ notary, onClose }) {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Location:</span>
-                <span className="font-medium">{notary.location}</span>
+                <span className="font-medium">{notary.location?.formatted ?? 'To be confirmed'}</span>
               </div>
               <div className="pt-2 border-t flex justify-between">
                 <span className="font-medium">Total:</span>
-                <span className="font-bold">{getServicePrice(selectedService).toLocaleString()} RWF</span>
+                <span className="font-bold">
+                  {selectedService ? selectedService.price.toLocaleString() : 0} RWF
+                </span>
               </div>
             </div>
           </div>

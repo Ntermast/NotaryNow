@@ -202,6 +202,24 @@ export class NotificationService {
     });
   }
 
+  static async notifyNotaryApplicationStatus(
+    notaryId: string,
+    status: 'APPROVED' | 'REJECTED',
+    options?: { reason?: string }
+  ) {
+    const isApproved = status === 'APPROVED';
+    return this.create({
+      userId: notaryId,
+      type: 'SYSTEM_ALERT',
+      title: isApproved ? 'Notary Application Approved' : 'Notary Application Update',
+      message: isApproved
+        ? 'Congratulations! Your notary profile has been approved. You can now start accepting appointments.'
+        : `Your notary application was declined${options?.reason ? `: ${options.reason}` : '.'}`,
+      actionUrl: isApproved ? '/dashboard/notary' : '/notary/onboarding',
+      metadata: { type: 'notary-status', status, reason: options?.reason ?? null }
+    });
+  }
+
   // Admin notifications for new user registrations
   static async notifyNewUserRegistration(newUserId: string, userName: string, userRole: string) {
     // Get all admin users

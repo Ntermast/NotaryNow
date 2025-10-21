@@ -126,17 +126,35 @@ export async function POST(request: NextRequest) {
 
     const { notaryId, serviceId, scheduledTime, duration, notes } = validatedData.data;
 
-    // Get service price
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId },
+    const notaryProfile = await prisma.notaryProfile.findUnique({
+      where: { userId: notaryId },
+      include: {
+        notaryServices: {
+          where: { serviceId },
+          include: {
+            service: true,
+          },
+        },
+      },
     });
 
-    if (!service) {
+    if (!notaryProfile || notaryProfile.approvalStatus !== "APPROVED") {
       return NextResponse.json(
-        { error: "Service not found" },
-        { status: 404 }
+        { error: "Notary is not available for bookings" },
+        { status: 400 }
       );
     }
+
+    const serviceOffering = notaryProfile.notaryServices[0];
+
+    if (!serviceOffering) {
+      return NextResponse.json(
+        { error: "Selected notary does not offer this service" },
+        { status: 400 }
+      );
+    }
+
+    const servicePrice = serviceOffering.customPrice ?? serviceOffering.service.basePrice;
 
     // Check for time slot conflicts
     const appointmentDateTime = new Date(scheduledTime);
@@ -199,7 +217,7 @@ export async function POST(request: NextRequest) {
         scheduledTime: new Date(scheduledTime),
         duration: duration || 60, // Default to 1 hour
         status: "PENDING",
-        totalCost: service.basePrice,
+        totalCost: servicePrice,
         notes: notes || "",
       },
       include: {
@@ -225,7 +243,7 @@ export async function POST(request: NextRequest) {
         userId,
         notaryId,
         appointment.id,
-        service.name,
+        serviceOffering.service.name,
         new Date(scheduledTime)
       );
     } catch (notificationError) {
