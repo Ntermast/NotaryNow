@@ -18,6 +18,7 @@ interface AppointmentCardProps {
     cost: number;
     rated?: boolean;
     rating?: number;
+    reviewComment?: string;
   };
   onCancel?: (id: number | string) => void;
   onReschedule?: (id: number | string) => void;
@@ -48,6 +49,12 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
       year: 'numeric' 
     });
   };
+
+  const appointmentDate = new Date(appointment.date);
+  const canReview =
+    appointment.status !== 'CANCELLED' &&
+    !appointment.rated &&
+    (appointment.status === 'COMPLETED' || appointmentDate < new Date());
 
   const handleReviewSubmit = () => {
     if (onReview) {
@@ -86,7 +93,7 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
             <span>Total Cost: {appointment.cost.toLocaleString()} RWF</span>
           </div>
           {appointment.rated && (
-            <div className="flex items-center text-sm">
+            <div className="space-y-2 text-sm">
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => (
                   <Star 
@@ -95,6 +102,9 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
                   />
                 ))}
               </div>
+              {appointment.reviewComment && (
+                <p className="text-gray-600 italic">"{appointment.reviewComment}"</p>
+              )}
             </div>
           )}
         </div>
@@ -114,7 +124,7 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
           </Button>
         )}
         
-        {appointment.status === 'COMPLETED' && !appointment.rated && onReview && (
+        {canReview && onReview && (
           <Dialog>
             <DialogTrigger asChild>
               <Button size="sm">Leave Review</Button>

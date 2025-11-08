@@ -207,7 +207,8 @@ export default function CustomerAppointmentsPage() {
                                 `${appointment.notary.notaryProfile.city} District, ${appointment.notary.notaryProfile.zip} Sector` : 
                                 appointment.notes || 'Location not specified',
                               status: appointment.status,
-                              cost: appointment.totalCost
+                              cost: appointment.totalCost,
+                              reviewComment: appointment.reviews?.[0]?.comment,
                             }}
                             onCancel={appointment.status === 'PENDING' ? () => handleCancelAppointment(appointment.id) : undefined}
                             onReschedule={appointment.status === 'CONFIRMED' ? () => handleRescheduleAppointment(appointment.id) : undefined}
@@ -244,10 +245,11 @@ export default function CustomerAppointmentsPage() {
                               status: appointment.status,
                               cost: appointment.totalCost,
                               rated: appointment.reviews && appointment.reviews.length > 0,
-                              rating: appointment.reviews && appointment.reviews.length > 0 ? appointment.reviews[0].rating : undefined
+                              rating: appointment.reviews && appointment.reviews.length > 0 ? appointment.reviews[0].rating : undefined,
+                              reviewComment: appointment.reviews?.[0]?.comment,
                             }}
                             onReview={
-                              appointment.status === 'COMPLETED' && (!appointment.reviews || appointment.reviews.length === 0) 
+                              (!appointment.reviews || appointment.reviews.length === 0) 
                                 ? (_id: string | number, rating: number, comment: string) => handleReviewSubmit(appointment.id, rating, comment) 
                                 : undefined
                             }

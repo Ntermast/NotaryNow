@@ -40,20 +40,17 @@ export const authOptions: AuthOptions = {
             throw new Error("Invalid email or password");
           }
 
-          // Check if notary is approved
-          if (user.role === "NOTARY" && user.notaryProfile) {
-            if (user.notaryProfile.approvalStatus === "PENDING") {
-              throw new Error("Your notary account is pending approval. Please wait for admin confirmation.");
-            }
-
-            if (user.notaryProfile.approvalStatus === "REJECTED") {
-              const reason = user.notaryProfile.rejectionReason
-                ? ` Reason: ${user.notaryProfile.rejectionReason}.`
-                : "";
-              throw new Error(
-                `Your notary application was declined.${reason} Please contact support if you believe this is a mistake.`
-              );
-            }
+          // Rejected notaries are blocked; pending can still log in (UI will limit actions)
+          if (
+            user.role === "NOTARY" &&
+            user.notaryProfile?.approvalStatus === "REJECTED"
+          ) {
+            const reason = user.notaryProfile.rejectionReason
+              ? ` Reason: ${user.notaryProfile.rejectionReason}.`
+              : "";
+            throw new Error(
+              `Your notary application was declined.${reason} Please contact support if you believe this is a mistake.`
+            );
           }
 
           return {
@@ -61,6 +58,8 @@ export const authOptions: AuthOptions = {
             name: user.name,
             email: user.email,
             role: user.role,
+            approvalStatus: user.notaryProfile?.approvalStatus,
+            rejectionReason: user.notaryProfile?.rejectionReason,
           };
         } catch (error) {
           console.error("Auth error:", error);
@@ -78,6 +77,10 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        if (user.role === "NOTARY") {
+          token.notaryApprovalStatus = user.approvalStatus;
+          token.notaryRejectionReason = user.rejectionReason;
+        }
       }
       return token;
     },
@@ -85,6 +88,12 @@ export const authOptions: AuthOptions = {
       if (session.user && token) {
         session.user.id = token.id;
         session.user.role = token.role;
+        if (token.notaryApprovalStatus) {
+          session.user.notaryApprovalStatus = token.notaryApprovalStatus as string;
+        }
+        if (token.notaryRejectionReason) {
+          session.user.notaryRejectionReason = token.notaryRejectionReason as string;
+        }
       }
       return session;
     },

@@ -156,49 +156,37 @@ export async function POST(request: NextRequest) {
 
     const servicePrice = serviceOffering.customPrice ?? serviceOffering.service.basePrice;
 
-    // Check for time slot conflicts
-    const appointmentDateTime = new Date(scheduledTime);
+    const appointmentStart = new Date(scheduledTime);
     const appointmentDuration = duration || 60;
-    const appointmentEndTime = new Date(appointmentDateTime.getTime() + appointmentDuration * 60000);
+    const appointmentEnd = new Date(
+      appointmentStart.getTime() + appointmentDuration * 60000
+    );
 
-    // Check if notary has any overlapping appointments
-    const conflictingAppointments = await prisma.appointment.findMany({
+    const activeAppointments = await prisma.appointment.findMany({
       where: {
         notaryId,
-        status: {
-          in: ["PENDING", "CONFIRMED"]
+        status: { in: ["PENDING", "CONFIRMED"] },
+        scheduledTime: {
+          lt: appointmentEnd,
         },
-        OR: [
-          {
-            // New appointment starts during existing appointment
-            AND: [
-              { scheduledTime: { lte: appointmentDateTime } },
-              { 
-                scheduledTime: {
-                  gt: new Date(appointmentDateTime.getTime() - 60 * 60000) // 1 hour before
-                }
-              }
-            ]
-          },
-          {
-            // New appointment ends during existing appointment  
-            scheduledTime: {
-              lt: appointmentEndTime,
-              gte: appointmentDateTime
-            }
-          },
-          {
-            // New appointment completely contains existing appointment
-            AND: [
-              { scheduledTime: { gte: appointmentDateTime } },
-              { scheduledTime: { lt: appointmentEndTime } }
-            ]
-          }
-        ]
-      }
+      },
+      select: {
+        id: true,
+        scheduledTime: true,
+        duration: true,
+      },
     });
 
-    if (conflictingAppointments.length > 0) {
+    const hasConflict = activeAppointments.some((existing) => {
+      const existingStart = new Date(existing.scheduledTime);
+      const existingEnd = new Date(
+        existingStart.getTime() + (existing.duration || 60) * 60000
+      );
+
+      return appointmentStart < existingEnd && appointmentEnd > existingStart;
+    });
+
+    if (hasConflict) {
       return NextResponse.json(
         { 
           error: "Time slot conflict", 
