@@ -76,15 +76,21 @@ export async function GET(request: NextRequest) {
       hourlyRate: profile.hourlyRate,
       bio: profile.bio,
       createdAt: profile.user.createdAt,
+      notaryType: profile.notaryType,
       services: profile.notaryServices.map(ns => ({
-        id: ns.service.id,
+        id: ns.id,
+        serviceId: ns.serviceId,
         name: ns.service.name,
-        customPrice: ns.customPrice
+        customPrice: ns.customPrice,
+        status: ns.status,
+        rejectionReason: ns.rejectionReason,
+        approvedAt: ns.approvedAt
       })),
       certifications: profile.certifications.map(c => ({
         id: c.certification.id,
         name: c.certification.name,
-        dateObtained: c.dateObtained
+        dateObtained: c.dateObtained,
+        documentUrl: c.documentUrl
       }))
     }));
 

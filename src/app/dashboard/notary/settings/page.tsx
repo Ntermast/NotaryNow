@@ -12,11 +12,61 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BellIcon, SettingsIcon, LogOut, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { signOut } from "next-auth/react";
 import { FileUpload } from "@/components/ui/file-upload";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+type AvailabilitySlot = {
+  start: string;
+  end: string;
+};
+
+type DayAvailability = {
+  enabled: boolean;
+  slots: AvailabilitySlot[];
+};
+
+type AvailabilityState = Record<string, DayAvailability>;
+
+const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+const createDefaultAvailability = (): AvailabilityState =>
+  DAYS_OF_WEEK.reduce((acc, day) => {
+    acc[day] = {
+      enabled: day !== "Sunday",
+      slots: [
+        { start: "09:00", end: "12:00" },
+        { start: "13:00", end: "17:00" },
+      ],
+    };
+    return acc;
+  }, {} as AvailabilityState);
+
+const mergeAvailabilityState = (incoming?: AvailabilityState | null) => {
+  const base = createDefaultAvailability();
+  if (!incoming) {
+    return base;
+  }
+
+  DAYS_OF_WEEK.forEach((day) => {
+    const incomingDay = incoming[day];
+    if (incomingDay) {
+      base[day] = {
+        enabled:
+          typeof incomingDay.enabled === "boolean" ? incomingDay.enabled : base[day].enabled,
+        slots:
+          Array.isArray(incomingDay.slots) && incomingDay.slots.length > 0
+            ? incomingDay.slots
+            : base[day].slots,
+      };
+    }
+  });
+
+  return base;
+};
 
 export default function NotarySettings() {
     const { data: session, status } = useSession();
@@ -34,6 +84,9 @@ export default function NotarySettings() {
     const [uploadingCert, setUploadingCert] = useState(false);
     const [selectedFile, setSelectedFile] = useState("");
     const [issueDate, setIssueDate] = useState("");
+    const [availability, setAvailability] = useState<AvailabilityState>(() => createDefaultAvailability());
+    const [availabilityLoading, setAvailabilityLoading] = useState(true);
+    const [savingAvailability, setSavingAvailability] = useState(false);
 
     // Handle tab from query params
     useEffect(() => {
@@ -84,6 +137,28 @@ export default function NotarySettings() {
         fetchNotaryProfile();
     }, [status]);
 
+    useEffect(() => {
+        async function fetchAvailability() {
+            if (status === "authenticated" && session?.user.role === "NOTARY") {
+                try {
+                    const response = await fetch("/api/notaries/availability");
+                    if (response.ok) {
+                        const data = await response.json();
+                        setAvailability(mergeAvailabilityState(data.availability));
+                    } else {
+                        throw new Error("Failed to fetch availability");
+                    }
+                } catch (error) {
+                    console.error("Error fetching availability:", error);
+                } finally {
+                    setAvailabilityLoading(false);
+                }
+            }
+        }
+
+        fetchAvailability();
+    }, [status, session]);
+
     const handleLogout = async () => {
         await signOut({ callbackUrl: '/' });
     };
@@ -105,6 +180,7 @@ export default function NotarySettings() {
                     zip: (profile as any)?.zip,
                     hourlyRate: (profile as any)?.hourlyRate,
                     bio: (profile as any)?.bio,
+                    notaryType: (profile as any)?.notaryType || "PRIVATE",
                 }),
             });
 
@@ -116,6 +192,98 @@ export default function NotarySettings() {
             toast.error("There was an error updating your profile");
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const toggleDayAvailability = (day: string, enabled: boolean) => {
+        setAvailability((prev) => ({
+            ...prev,
+            [day]: {
+                ...prev[day],
+                enabled,
+            },
+        }));
+    };
+
+    const updateSlotValue = (day: string, index: number, field: "start" | "end", value: string) => {
+        setAvailability((prev) => {
+            const dayData = prev[day];
+            const updatedSlots = [...dayData.slots];
+            updatedSlots[index] = {
+                ...updatedSlots[index],
+                [field]: value,
+            };
+
+            return {
+                ...prev,
+                [day]: {
+                    ...dayData,
+                    slots: updatedSlots,
+                },
+            };
+        });
+    };
+
+    const addSlotForDay = (day: string) => {
+        setAvailability((prev) => {
+            const dayData = prev[day];
+            const newSlot: AvailabilitySlot = dayData.slots.length
+                ? { ...dayData.slots[dayData.slots.length - 1] }
+                : { start: "09:00", end: "12:00" };
+
+            return {
+                ...prev,
+                [day]: {
+                    ...dayData,
+                    slots: [...dayData.slots, newSlot],
+                },
+            };
+        });
+    };
+
+    const removeSlotForDay = (day: string, index: number) => {
+        setAvailability((prev) => {
+            const dayData = prev[day];
+            const updatedSlots = dayData.slots.filter((_, slotIndex) => slotIndex !== index);
+
+            return {
+                ...prev,
+                [day]: {
+                    ...dayData,
+                    slots: updatedSlots.length ? updatedSlots : dayData.slots,
+                },
+            };
+        });
+    };
+
+    const handleSaveAvailability = async () => {
+        const hasInvalidSlot = DAYS_OF_WEEK.some((day) =>
+            availability[day].slots.some((slot) => slot.start >= slot.end)
+        );
+
+        if (hasInvalidSlot) {
+            toast.error("Please make sure start time is earlier than end time for each slot.");
+            return;
+        }
+
+        setSavingAvailability(true);
+        try {
+            const response = await fetch("/api/notaries/availability", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ availability }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to save availability");
+            }
+
+            toast.success("Availability saved successfully");
+        } catch (error) {
+            console.error("Error saving availability:", error);
+            toast.error("Failed to save availability");
+        } finally {
+            setSavingAvailability(false);
         }
     };
 
@@ -336,14 +504,32 @@ export default function NotarySettings() {
                                                             disabled={profile?.isApproved}
                                                         />
                                                     </div>
-                                                </div>
+                                            </div>
 
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="hourlyRate">Hourly Rate (RWF)</Label>
-                                                    <Input
-                                                        id="hourlyRate"
-                                                        type="number"
-                                                        value={(profile as any)?.hourlyRate || ''}
+                                            <div className="space-y-2">
+                                                <Label htmlFor="notaryType">Notary Type</Label>
+                                                <Select
+                                                    value={(profile as any)?.notaryType || "PRIVATE"}
+                                                    onValueChange={(value) =>
+                                                        setProfile({ ...(profile as any), notaryType: value })
+                                                    }
+                                                >
+                                                    <SelectTrigger id="notaryType">
+                                                        <SelectValue placeholder="Select notary type" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="PUBLIC">Public Notary</SelectItem>
+                                                        <SelectItem value="PRIVATE">Private Notary</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label htmlFor="hourlyRate">Hourly Rate (RWF)</Label>
+                                                <Input
+                                                    id="hourlyRate"
+                                                    type="number"
+                                                    value={(profile as any)?.hourlyRate || ''}
                                                         onChange={(e) =>
                                                             setProfile({
                                                                 ...(profile as any),
@@ -512,49 +698,90 @@ export default function NotarySettings() {
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="space-y-6">
-                                                {/* Days of the week */}
-                                                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
-                                                    <div key={day} className="border rounded-lg p-4">
-                                                        <div className="flex items-center justify-between mb-4">
-                                                            <div className="flex items-center space-x-3">
-                                                                <Checkbox id={`available-${day.toLowerCase()}`} />
-                                                                <Label htmlFor={`available-${day.toLowerCase()}`} className="font-medium">
-                                                                    {day}
-                                                                </Label>
+                                            {availabilityLoading ? (
+                                                <div className="text-sm text-gray-500">Loading availability...</div>
+                                            ) : (
+                                                <div className="space-y-6">
+                                                    {DAYS_OF_WEEK.map((day) => (
+                                                        <div key={day} className="border rounded-lg p-4 space-y-4">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center space-x-3">
+                                                                    <Checkbox
+                                                                        id={`available-${day}`}
+                                                                        checked={availability[day].enabled}
+                                                                        onCheckedChange={(checked) =>
+                                                                            toggleDayAvailability(day, Boolean(checked))
+                                                                        }
+                                                                    />
+                                                                    <Label htmlFor={`available-${day}`} className="font-medium">
+                                                                        {day}
+                                                                    </Label>
+                                                                </div>
+                                                                <div>
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={() => addSlotForDay(day)}
+                                                                        disabled={!availability[day].enabled}
+                                                                    >
+                                                                        Add Time Slot
+                                                                    </Button>
+                                                                </div>
                                                             </div>
-                                                            <div>
-                                                                <Button variant="outline" size="sm">
-                                                                    Add Time Slot
-                                                                </Button>
+                                                            <div className="space-y-3">
+                                                                {availability[day].slots.map((slot, index) => (
+                                                                    <div
+                                                                        key={`${day}-slot-${index}`}
+                                                                        className="flex flex-col md:flex-row md:items-center gap-3 border rounded p-3"
+                                                                    >
+                                                                        <div className="flex items-center space-x-2 flex-1">
+                                                                            <Label className="text-sm text-gray-500">From</Label>
+                                                                            <Input
+                                                                                type="time"
+                                                                                value={slot.start}
+                                                                                onChange={(e) =>
+                                                                                    updateSlotValue(day, index, "start", e.target.value)
+                                                                                }
+                                                                                disabled={!availability[day].enabled}
+                                                                            />
+                                                                            <Label className="text-sm text-gray-500">To</Label>
+                                                                            <Input
+                                                                                type="time"
+                                                                                value={slot.end}
+                                                                                onChange={(e) =>
+                                                                                    updateSlotValue(day, index, "end", e.target.value)
+                                                                                }
+                                                                                disabled={!availability[day].enabled}
+                                                                            />
+                                                                        </div>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            className="text-red-500"
+                                                                            onClick={() => removeSlotForDay(day, index)}
+                                                                            disabled={
+                                                                                !availability[day].enabled ||
+                                                                                availability[day].slots.length <= 1
+                                                                            }
+                                                                        >
+                                                                            Remove
+                                                                        </Button>
+                                                                    </div>
+                                                                ))}
                                                             </div>
                                                         </div>
-
-                                                        {/* Time slots - In a real app, these would be dynamically rendered based on stored schedule */}
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                            <div className="flex space-x-3 items-center border rounded p-2">
-                                                                <div className="flex-1">
-                                                                    <span className="text-sm font-medium">9:00 AM - 12:00 PM</span>
-                                                                </div>
-                                                                <Button variant="ghost" size="sm" className="text-red-500 h-8 w-8 p-0">
-                                                                    ×
-                                                                </Button>
-                                                            </div>
-                                                            <div className="flex space-x-3 items-center border rounded p-2">
-                                                                <div className="flex-1">
-                                                                    <span className="text-sm font-medium">1:00 PM - 5:00 PM</span>
-                                                                </div>
-                                                                <Button variant="ghost" size="sm" className="text-red-500 h-8 w-8 p-0">
-                                                                    ×
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </CardContent>
                                         <CardFooter>
-                                            <Button type="button">Save Schedule</Button>
+                                            <Button
+                                                type="button"
+                                                onClick={handleSaveAvailability}
+                                                disabled={savingAvailability}
+                                            >
+                                                {savingAvailability ? "Saving..." : "Save Schedule"}
+                                            </Button>
                                         </CardFooter>
                                     </Card>
                                 </TabsContent>

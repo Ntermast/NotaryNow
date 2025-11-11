@@ -58,6 +58,7 @@ export async function GET(
       phone: notary.phone,
       createdAt: notary.createdAt,
       isApproved: notary.notaryProfile?.isApproved || false,
+      notaryType: notary.notaryProfile?.notaryType || "PRIVATE",
       approvalStatus: notary.notaryProfile?.approvalStatus || "PENDING",
       rejectionReason: notary.notaryProfile?.rejectionReason || null,
       
@@ -70,7 +71,15 @@ export async function GET(
       hourlyRate: notary.notaryProfile?.hourlyRate,
       
       // Services
-      services: notary.notaryProfile?.notaryServices?.map(ns => ns.service.name) || [],
+      services: notary.notaryProfile?.notaryServices?.map(ns => ({
+        id: ns.id,
+        serviceId: ns.serviceId,
+        name: ns.service.name,
+        status: ns.status,
+        rejectionReason: ns.rejectionReason,
+        approvedAt: ns.approvedAt,
+        customPrice: ns.customPrice
+      })) || [],
       
       // Certifications with approval status
       certifications: notary.notaryProfile?.certifications?.map(cert => ({

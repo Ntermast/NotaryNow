@@ -35,6 +35,12 @@ export default function AdminNotariesPage() {
     }
   };
 
+  const formatNotaryType = (type?: string) => {
+    if (type === 'PUBLIC') return 'Public Notary';
+    if (type === 'PRIVATE') return 'Private Notary';
+    return 'Notary';
+  };
+
   // Fetch notaries data
   useEffect(() => {
     async function fetchNotaries() {
@@ -206,6 +212,68 @@ export default function AdminNotariesPage() {
     }
   };
 
+  const applyServiceUpdateToState = (serviceId: string, updatedService: any) => {
+    const normalized: Record<string, any> = {
+      status: updatedService.status,
+      rejectionReason: updatedService.rejectionReason ?? null,
+      approvedAt: updatedService.approvedAt ?? null,
+      customPrice: updatedService.customPrice ?? null,
+    };
+    if (updatedService.service?.name) {
+      normalized.name = updatedService.service.name;
+    }
+
+    setNotaries((prev) =>
+      prev.map((notary) => ({
+        ...notary,
+        services: notary.services.map((service: any) =>
+          service.id === serviceId ? { ...service, ...normalized } : service
+        ),
+      }))
+    );
+
+    setSelectedNotary((prev) =>
+      prev
+        ? {
+            ...prev,
+            services: prev.services.map((service: any) =>
+              service.id === serviceId ? { ...service, ...normalized } : service
+            ),
+          }
+        : prev
+    );
+  };
+
+  const handleServiceApproval = async (serviceId: string, action: 'approve' | 'reject') => {
+    try {
+      let reason: string | undefined;
+      if (action === 'reject') {
+        reason = window.prompt('Please share a short reason for the decline (optional).') || undefined;
+      }
+
+      const response = await fetch(`/api/admin/notaries/services/${serviceId}/${action}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: action === 'reject' ? JSON.stringify({ reason }) : undefined,
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || `Failed to ${action} service`);
+      }
+
+      const data = await response.json();
+      applyServiceUpdateToState(serviceId, data);
+
+      toast.success(`Service ${action === 'approve' ? 'approved' : 'declined'} successfully`);
+    } catch (error) {
+      console.error('Error updating service:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update service');
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-full">Loading notaries...</div>;
   }
@@ -269,7 +337,7 @@ export default function AdminNotariesPage() {
                     {renderStatusBadge(notary.approvalStatus)}
                   </div>
                   <CardDescription>
-                    {notary.email} • {notary.location}
+                    {notary.email} • {notary.location} • {formatNotaryType(notary.notaryType)}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -341,7 +409,7 @@ export default function AdminNotariesPage() {
                     {renderStatusBadge(notary.approvalStatus)}
                   </div>
                   <CardDescription>
-                    {notary.email} • {notary.location}
+                    {notary.email} • {notary.location} • {formatNotaryType(notary.notaryType)}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -412,7 +480,7 @@ export default function AdminNotariesPage() {
                     {renderStatusBadge(notary.approvalStatus)}
                   </div>
                   <CardDescription>
-                    {notary.email} • {notary.location}
+                    {notary.email} • {notary.location} • {formatNotaryType(notary.notaryType)}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -534,6 +602,10 @@ export default function AdminNotariesPage() {
                       {renderStatusBadge(selectedNotary.approvalStatus)}
                     </div>
                   </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Notary Type:</span>
+                    <p>{formatNotaryType(selectedNotary.notaryType)}</p>
+                  </div>
                 </div>
                 {selectedNotary.approvalStatus === 'REJECTED' && selectedNotary.rejectionReason && (
                   <div className="mt-3 rounded-md border border-red-100 bg-red-50 p-3 text-sm text-red-700">
@@ -569,12 +641,67 @@ export default function AdminNotariesPage() {
               {/* Services */}
               <div>
                 <h3 className="text-lg font-semibold mb-3">Services Offered</h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedNotary.services?.map((service: string, index: number) => (
-                    <Badge key={index} variant="outline">
-                      {service}
-                    </Badge>
+                <div className="space-y-3">
+                  {selectedNotary.services?.map((service: any) => (
+                    <div key={service.id} className="border rounded-lg p-3">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                          <p className="font-medium">{service.name}</p>
+                          <div className="flex flex-wrap gap-2 mt-1 text-sm">
+                            <Badge
+                              className={
+                                service.status === 'APPROVED'
+                                  ? 'bg-green-100 text-green-800'
+                                  : service.status === 'PENDING'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-red-100 text-red-800'
+                              }
+                            >
+                              {service.status === 'APPROVED'
+                                ? 'Approved'
+                                : service.status === 'PENDING'
+                                  ? 'Pending Review'
+                                  : 'Declined'}
+                            </Badge>
+                            {service.customPrice && (
+                              <Badge variant="secondary">
+                                Custom Price: {Number(service.customPrice).toLocaleString()} RWF
+                              </Badge>
+                            )}
+                          </div>
+                          {service.rejectionReason && (
+                            <p className="text-xs text-red-600 mt-1">
+                              Reason: {service.rejectionReason}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          {service.status !== 'APPROVED' && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleServiceApproval(service.id, 'approve')}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Approve
+                            </Button>
+                          )}
+                          {service.status !== 'REJECTED' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleServiceApproval(service.id, 'reject')}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Decline
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   ))}
+                  {(!selectedNotary.services || selectedNotary.services.length === 0) && (
+                    <p className="text-sm text-gray-500">No services requested yet.</p>
+                  )}
                 </div>
               </div>
 

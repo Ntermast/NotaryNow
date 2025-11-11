@@ -77,6 +77,28 @@ export async function POST(
     });
 
     if (existingService) {
+      if (existingService.status === "REJECTED") {
+        const reactivatedService = await prisma.notaryService.update({
+          where: {
+            notaryProfileId_serviceId: {
+              notaryProfileId: notaryProfile.id,
+              serviceId,
+            },
+          },
+          data: {
+            status: "PENDING",
+            rejectionReason: null,
+            customPrice: validation.data.customPrice ?? existingService.customPrice,
+            approvedAt: null,
+          },
+          include: {
+            service: true,
+          },
+        });
+
+        return NextResponse.json(reactivatedService);
+      }
+
       return NextResponse.json(
         { error: "Service already added" },
         { status: 400 }
@@ -88,6 +110,7 @@ export async function POST(
         notaryProfileId: notaryProfile.id,
         serviceId,
         customPrice: validation.data.customPrice ?? null,
+        status: "PENDING",
       },
       include: {
         service: true,

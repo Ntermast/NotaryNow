@@ -44,6 +44,17 @@ enum NotificationType {
   SYSTEM_ALERT
 }
 
+enum NotaryType {
+  PUBLIC
+  PRIVATE
+}
+
+enum NotaryServiceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String
@@ -69,6 +80,7 @@ model NotaryProfile {
   isApproved      Boolean              @default(false)
   approvalStatus  NotaryApprovalStatus @default(PENDING)
   rejectionReason String?
+  notaryType      NotaryType           @default(PRIVATE)
   address         String
   city            String
   state           String
@@ -76,6 +88,7 @@ model NotaryProfile {
   hourlyRate      Float
   averageRating   Float                @default(0)
   bio             String?
+  availabilityConfig String?
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
@@ -121,11 +134,14 @@ model Service {
 }
 
 model NotaryService {
-  id              String   @id @default(cuid())
+  id              String               @id @default(cuid())
   notaryProfileId String
   serviceId       String
   customPrice     Float?
-  createdAt       DateTime @default(now())
+  status          NotaryServiceStatus  @default(PENDING)
+  rejectionReason String?
+  approvedAt      DateTime?
+  createdAt       DateTime             @default(now())
 
   notaryProfile NotaryProfile @relation(fields: [notaryProfileId], references: [id], onDelete: Cascade)
   service       Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)

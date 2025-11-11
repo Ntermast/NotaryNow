@@ -23,6 +23,7 @@ interface OnboardingData {
   zip: string;
   hourlyRate: number;
   bio: string;
+  notaryType: 'PUBLIC' | 'PRIVATE';
   // Services
   selectedServices: string[];
   // Certifications
@@ -53,6 +54,7 @@ function NotaryOnboardingContent() {
     zip: '',
     hourlyRate: 50000, // Default rate in RWF
     bio: '',
+    notaryType: 'PRIVATE',
     selectedServices: [],
     certifications: [],
     experience: '',
@@ -206,7 +208,8 @@ function NotaryOnboardingContent() {
           state: onboardingData.state,
           zip: onboardingData.zip,
           hourlyRate: onboardingData.hourlyRate,
-          bio: onboardingData.bio
+          bio: onboardingData.bio,
+          notaryType: onboardingData.notaryType,
         }),
       });
 
@@ -324,6 +327,24 @@ function NotaryOnboardingContent() {
                 </div>
 
                 <div>
+                  <Label htmlFor="notaryType">Notary Type *</Label>
+                  <Select
+                    value={onboardingData.notaryType}
+                    onValueChange={(value: 'PUBLIC' | 'PRIVATE') =>
+                      updateOnboardingData('notaryType', value)
+                    }
+                  >
+                    <SelectTrigger id="notaryType" className="mt-1">
+                      <SelectValue placeholder="Select notary type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PUBLIC">Public Notary</SelectItem>
+                      <SelectItem value="PRIVATE">Private Notary</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
                   <Label htmlFor="address">Full Address *</Label>
                   <Input
                     id="address"
@@ -373,7 +394,10 @@ function NotaryOnboardingContent() {
             {/* Step 2: Services */}
             {currentStep === 2 && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">Select all services you can provide:</p>
+                <p className="text-sm text-gray-600">
+                  Select all services you can provide. Each request will be reviewed and approved by
+                  an administrator before it becomes visible to customers.
+                </p>
                 <div className="grid gap-3">
                   {availableServices.map((service: any) => (
                     <div key={service.id} className="flex items-center space-x-2 p-3 border rounded-lg">

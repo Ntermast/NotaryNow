@@ -72,6 +72,7 @@ async function main() {
     update: {
       isApproved: true,
       approvalStatus: 'APPROVED',
+      notaryType: 'PUBLIC',
       address: 'KG 15 Ave, Building #23',
       city: 'Gasabo',
       state: 'Kigali',
@@ -84,6 +85,7 @@ async function main() {
       userId: notary.id,
       isApproved: true,
       approvalStatus: 'APPROVED',
+      notaryType: 'PUBLIC',
       address: 'KG 15 Ave, Building #23',
       city: 'Gasabo',
       state: 'Kigali',
@@ -168,10 +170,15 @@ async function main() {
           serviceId: deedService.id
         }
       },
-      update: {},
+      update: {
+        status: 'APPROVED',
+        approvedAt: new Date()
+      },
       create: {
         notaryProfileId: notaryProfile.id,
-        serviceId: deedService.id
+        serviceId: deedService.id,
+        status: 'APPROVED',
+        approvedAt: new Date()
       }
     });
   }
@@ -184,10 +191,15 @@ async function main() {
           serviceId: poaService.id
         }
       },
-      update: {},
+      update: {
+        status: 'APPROVED',
+        approvedAt: new Date()
+      },
       create: {
         notaryProfileId: notaryProfile.id,
-        serviceId: poaService.id
+        serviceId: poaService.id,
+        status: 'APPROVED',
+        approvedAt: new Date()
       }
     });
   }
@@ -200,10 +212,15 @@ async function main() {
           serviceId: mortgageService.id
         }
       },
-      update: {},
+      update: {
+        status: 'APPROVED',
+        approvedAt: new Date()
+      },
       create: {
         notaryProfileId: notaryProfile.id,
-        serviceId: mortgageService.id
+        serviceId: mortgageService.id,
+        status: 'APPROVED',
+        approvedAt: new Date()
       }
     });
   }

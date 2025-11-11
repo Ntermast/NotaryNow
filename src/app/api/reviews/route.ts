@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/auth-options";
+import { NotificationService } from "@/lib/notifications";
 import { z } from "zod";
 
 // Schema validation for creating a review
@@ -104,18 +105,36 @@ export async function POST(request: NextRequest) {
     const appointment = await prisma.appointment.findUnique({
       where: {
         id: appointmentId,
-        customerId: userId,
-        status: "COMPLETED", // Only completed appointments can be reviewed
       },
       include: {
         reviews: true,
+        service: true,
+        notary: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
-    if (!appointment) {
+    if (!appointment || appointment.customerId !== userId) {
       return NextResponse.json(
         { error: "Appointment not found or cannot be reviewed" },
         { status: 404 }
+      );
+    }
+
+    const now = new Date();
+    const scheduledTime = new Date(appointment.scheduledTime);
+    const isEligibleStatus =
+      appointment.status === "COMPLETED" ||
+      (appointment.status === "CONFIRMED" && scheduledTime <= now);
+
+    if (!isEligibleStatus) {
+      return NextResponse.json(
+        { error: "You can only review appointments that have been completed." },
+        { status: 400 }
       );
     }
 
@@ -185,6 +204,24 @@ export async function POST(request: NextRequest) {
           averageRating,
         },
       });
+    }
+
+    try {
+      await NotificationService.create({
+        userId: appointment.notaryId,
+        type: "SYSTEM_ALERT",
+        title: "New Review Received",
+        message: `You received a ${rating}-star review for ${appointment.service.name}.`,
+        actionUrl: `/dashboard/notary/appointments?id=${appointment.id}`,
+        metadata: {
+          appointmentId,
+          rating,
+          comment,
+          type: "review",
+        },
+      });
+    } catch (notificationError) {
+      console.error("Failed to send review notification:", notificationError);
     }
 
     return NextResponse.json(review);

@@ -154,6 +154,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (serviceOffering.status !== "APPROVED") {
+      return NextResponse.json(
+        { error: "This service is not yet approved for the selected notary." },
+        { status: 400 }
+      );
+    }
+
     const servicePrice = serviceOffering.customPrice ?? serviceOffering.service.basePrice;
 
     const appointmentStart = new Date(scheduledTime);

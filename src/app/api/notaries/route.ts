@@ -64,6 +64,9 @@ export async function GET(request: NextRequest) {
           },
         },
         notaryServices: {
+          where: {
+            status: "APPROVED",
+          },
           include: {
             service: true,
           },
@@ -163,6 +166,7 @@ export async function GET(request: NextRequest) {
           name: profile.user.name,
           photo: "",
           contactEmail: profile.user.email,
+          notaryType: profile.notaryType,
           location: {
             district: profile.city,
             sector: profile.zip,

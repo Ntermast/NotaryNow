@@ -13,6 +13,9 @@ const updateNotaryProfileSchema = z.object({
   zip: z.string().min(1, "Postal code is required").max(20, "Postal code too long"),
   hourlyRate: z.number().min(0, "Rate must be positive").max(1000000, "Rate too high"),
   bio: z.string().max(1000, "Bio too long").optional(),
+  notaryType: z.enum(["PUBLIC", "PRIVATE"], {
+    required_error: "Please choose the notary type",
+  }),
 });
 
 export async function GET(request: NextRequest) {
@@ -87,7 +90,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const { address, city, state, zip, hourlyRate, bio } = validatedData.data;
+    const { address, city, state, zip, hourlyRate, bio, notaryType } = validatedData.data;
 
     // Update notary profile
     const updatedProfile = await prisma.notaryProfile.update({
@@ -101,6 +104,7 @@ export async function PATCH(request: NextRequest) {
         zip,
         hourlyRate,
         bio,
+        notaryType,
       },
     });
 

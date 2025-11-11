@@ -35,6 +35,7 @@ interface NotaryCardProps {
     name: string;
     photo?: string | null;
     contactEmail?: string;
+    notaryType?: "PUBLIC" | "PRIVATE";
     location: NotaryLocation;
     rating?: number | null;
     reviewCount: number;
@@ -65,6 +66,8 @@ export function NotaryCard({ notary }: NotaryCardProps) {
 
   const featuredServices = notary.services.slice(0, 3);
   const remainingServiceCount = Math.max(notary.services.length - featuredServices.length, 0);
+  const notaryTypeLabel =
+    notary.notaryType === 'PUBLIC' ? 'Public Notary' : 'Private Notary';
 
   return (
     <Card className="overflow-hidden">
@@ -76,6 +79,7 @@ export function NotaryCard({ notary }: NotaryCardProps) {
           </Avatar>
           <div className="text-center space-y-1">
             <h3 className="font-medium">{notary.name}</h3>
+            <Badge variant="secondary">{notaryTypeLabel}</Badge>
             <div className="flex items-center justify-center gap-1 text-sm text-gray-600">
               <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
               <span>{displayRating}</span>
