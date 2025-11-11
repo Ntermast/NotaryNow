@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/auth-options";
 import { z } from "zod";
+import { NotificationService } from "@/lib/notifications";
 
 // Validation schemas
 const addCertificationSchema = z.object({
@@ -106,6 +107,29 @@ export async function POST(
         certification: true,
       },
     });
+
+    // Notify admins about the new certification submission
+    const admins = await prisma.user.findMany({
+      where: { role: "ADMIN" },
+      select: { id: true },
+    });
+
+    if (admins.length > 0) {
+      await NotificationService.createForMultipleUsers(
+        admins.map((admin) => admin.id),
+        {
+          type: "SYSTEM_ALERT",
+          title: "New Certification Submitted",
+          message: `${session.user.name || "A notary"} uploaded ${certification.name} for review.`,
+          actionUrl: "/dashboard/admin/notaries",
+          metadata: {
+            type: "certification",
+            certificationId: notaryCertification.id,
+            notaryId: notaryProfile.userId,
+          },
+        }
+      );
+    }
 
     return NextResponse.json(notaryCertification);
   } catch (error) {

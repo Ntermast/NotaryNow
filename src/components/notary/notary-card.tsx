@@ -40,6 +40,8 @@ interface NotaryCardProps {
     rating?: number | null;
     reviewCount: number;
     services: NotaryService[];
+    serviceNames?: string[];
+    availableForBooking?: boolean;
     startingPrice: number;
     availableToday: boolean;
     experienceYears: number;
@@ -68,6 +70,7 @@ export function NotaryCard({ notary }: NotaryCardProps) {
   const remainingServiceCount = Math.max(notary.services.length - featuredServices.length, 0);
   const notaryTypeLabel =
     notary.notaryType === 'PUBLIC' ? 'Public Notary' : 'Private Notary';
+  const bookingDisabled = notary.availableForBooking === false;
 
   return (
     <Card className="overflow-hidden">
@@ -83,7 +86,7 @@ export function NotaryCard({ notary }: NotaryCardProps) {
             <div className="flex items-center justify-center gap-1 text-sm text-gray-600">
               <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
               <span>{displayRating}</span>
-              <span className="text-gray-400">({notary.reviewCount})</span>
+              <span className="text-gray-400">({notary.reviewCount} reviews)</span>
             </div>
             <div className="text-xs text-gray-500">
               {notary.experienceYears}+ years of experience
@@ -154,24 +157,31 @@ export function NotaryCard({ notary }: NotaryCardProps) {
             <span className="text-2xl font-bold">{formatCurrency(notary.startingPrice)}</span>
           </div>
 
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="w-full">Book Appointment</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Book an Appointment</DialogTitle>
-                <DialogDescription>
-                  Choose a date and time to meet with {notary.name}.
-                </DialogDescription>
-              </DialogHeader>
-              <BookingForm
-                notary={notary}
-                onClose={() => document.getElementById('close-dialog-btn')?.click()}
-              />
-              <button id="close-dialog-btn" className="hidden" aria-hidden="true"></button>
-            </DialogContent>
-          </Dialog>
+          {bookingDisabled ? (
+            <div className="text-sm text-gray-500 text-center">
+              <p>Services pending admin approval.</p>
+              <p>Booking will be enabled once approved.</p>
+            </div>
+          ) : (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="w-full">Book Appointment</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Book an Appointment</DialogTitle>
+                  <DialogDescription>
+                    Choose a date and time to meet with {notary.name}.
+                  </DialogDescription>
+                </DialogHeader>
+                <BookingForm
+                  notary={notary}
+                  onClose={() => document.getElementById('close-dialog-btn')?.click()}
+                />
+                <button id="close-dialog-btn" className="hidden" aria-hidden="true"></button>
+              </DialogContent>
+            </Dialog>
+          )}
 
           <Button variant="outline" className="mt-2">
             View Profile

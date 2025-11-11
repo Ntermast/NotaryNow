@@ -13,11 +13,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BellIcon, SettingsIcon, LogOut, Upload, FileText } from "lucide-react";
+import { SettingsIcon, LogOut, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { signOut } from "next-auth/react";
 import { FileUpload } from "@/components/ui/file-upload";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { NotificationsButton } from "@/components/dashboard/notifications-button";
 
 type AvailabilitySlot = {
   start: string;
@@ -420,10 +421,7 @@ export default function NotarySettings() {
                                 <h1 className="text-xl font-semibold">Account Settings</h1>
                             </div>
                             <div className="flex items-center gap-4">
-                                <Button variant="outline" size="sm">
-                                    <BellIcon className="h-4 w-4 mr-2" />
-                                    Notifications
-                                </Button>
+                                <NotificationsButton />
                                 <Button variant="outline" size="icon">
                                     <SettingsIcon className="h-4 w-4" />
                                 </Button>

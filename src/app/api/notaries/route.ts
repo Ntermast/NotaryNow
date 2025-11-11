@@ -137,7 +137,11 @@ export async function GET(request: NextRequest) {
 
     const notaries = filteredProfiles
       .map((profile) => {
-        const services = profile.notaryServices.map((ns) => {
+        const approvedServices = profile.notaryServices.filter(
+          (ns) => ns.status === "APPROVED"
+        );
+
+        const services = approvedServices.map((ns) => {
           const effectivePrice = ns.customPrice ?? ns.service.basePrice;
           return {
             id: ns.serviceId,
@@ -149,14 +153,13 @@ export async function GET(request: NextRequest) {
           };
         });
 
-        if (services.length === 0) {
-          return null;
-        }
+        const hasBookableServices = services.length > 0;
 
-        const startingPrice = Math.min(...services.map((service) => service.price));
-
-        if (maxRate && startingPrice > parseFloat(maxRate)) {
-          return null;
+        if (maxRate && hasBookableServices) {
+          const startingPrice = Math.min(...services.map((service) => service.price));
+          if (startingPrice > parseFloat(maxRate)) {
+            return null;
+          }
         }
 
         const stats = reviewStats.get(profile.user.id);
@@ -175,13 +178,17 @@ export async function GET(request: NextRequest) {
           },
           distanceKm: null,
           hourlyRate: profile.hourlyRate,
-          startingPrice,
+          startingPrice: hasBookableServices
+            ? Math.min(...services.map((service) => service.price))
+            : profile.hourlyRate,
           rating:
             stats && stats.count > 0
               ? parseFloat((stats.totalRating / stats.count).toFixed(1))
               : profile.averageRating,
           reviewCount: stats?.count ?? 0,
           services,
+          serviceNames: services.map((service) => service.name),
+          availableForBooking: hasBookableServices,
           certifications: profile.certifications.map((c) => ({
             id: c.certification.id,
             name: c.certification.name,

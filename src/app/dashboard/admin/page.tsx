@@ -6,10 +6,11 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { TabsList, TabsTrigger, TabsContent, Tabs } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Calendar, Users, Briefcase, ShieldCheck, BellIcon, SettingsIcon, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, Users, Briefcase, ShieldCheck, SettingsIcon, CheckCircle, XCircle } from 'lucide-react';
 import { StatsCard } from '@/components/dashboard/stats-card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { NotificationsButton } from '@/components/dashboard/notifications-button';
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
@@ -123,10 +124,7 @@ export default function AdminDashboard() {
             <h1 className="text-xl font-semibold">Admin Dashboard</h1>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm">
-              <BellIcon className="h-4 w-4 mr-2" />
-              Notifications
-            </Button>
+            <NotificationsButton />
             <Button variant="outline" size="icon">
               <SettingsIcon className="h-4 w-4" />
             </Button>

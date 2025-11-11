@@ -1,45 +1,36 @@
-// src/app/api/notifications/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/auth-options";
+import { prisma } from "@/lib/db";
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { read } = body;
+    const { id } = await params;
 
-    // Find the notification and check ownership
     const notification = await prisma.notification.findUnique({
-      where: { id }
+      where: { id },
     });
 
-    if (!notification) {
-      return NextResponse.json({ error: "Notification not found" }, { status: 404 });
+    if (!notification || notification.userId !== session.user.id) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    if (notification.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    // Update the notification
-    const updatedNotification = await prisma.notification.update({
+    const updated = await prisma.notification.update({
       where: { id },
       data: {
-        read: read !== undefined ? read : notification.read
-      }
+        read: true,
+      },
     });
 
-    return NextResponse.json(updatedNotification);
+    return NextResponse.json(updated);
   } catch (error) {
     console.error("Error updating notification:", error);
     return NextResponse.json(
@@ -49,40 +40,3 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Find the notification and check ownership
-    const notification = await prisma.notification.findUnique({
-      where: { id }
-    });
-
-    if (!notification) {
-      return NextResponse.json({ error: "Notification not found" }, { status: 404 });
-    }
-
-    if (notification.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    await prisma.notification.delete({
-      where: { id }
-    });
-
-    return NextResponse.json({ message: "Notification deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting notification:", error);
-    return NextResponse.json(
-      { error: "Failed to delete notification" },
-      { status: 500 }
-    );
-  }
-}

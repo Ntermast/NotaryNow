@@ -287,7 +287,9 @@ export function BookingForm({ notary, onClose }) {
               <div className="pt-2 border-t flex justify-between">
                 <span className="font-medium">Total:</span>
                 <span className="font-bold">
-                  {selectedService ? selectedService.price.toLocaleString() : 0} RWF
+                  {selectedService
+                    ? selectedService.price.toLocaleString()
+                    : notary.hourlyRate.toLocaleString()} RWF
                 </span>
               </div>
             </div>
