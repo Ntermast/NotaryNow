@@ -24,6 +24,7 @@ export default function NotaryDashboard() {
     averageRating: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [recentReviews, setRecentReviews] = useState<any[]>([]);
 
   useEffect(() => {
     // Redirect if not authenticated or not a notary
@@ -72,6 +73,25 @@ export default function NotaryDashboard() {
             revenue,
             averageRating,
           });
+
+          const reviewsFeed = data
+            .flatMap((app: any) =>
+              app.reviews.map((review: any) => ({
+                id: review.id,
+                rating: review.rating,
+                comment: review.comment,
+                createdAt: review.createdAt,
+                customerName: app.customer?.name,
+                serviceName: app.service?.name,
+              }))
+            )
+            .sort(
+              (a, b) =>
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            )
+            .slice(0, 4);
+
+          setRecentReviews(reviewsFeed);
           
           setLoading(false);
         } catch (error) {
@@ -176,6 +196,46 @@ export default function NotaryDashboard() {
                   icon={Star}
                 />
               </div>
+
+              {recentReviews.length > 0 && (
+                <div className="mt-8">
+                  <h2 className="text-lg font-medium mb-4">Recent Reviews</h2>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {recentReviews.map((review) => (
+                      <Card key={review.id}>
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base">
+                              {review.customerName || "Customer"}
+                            </CardTitle>
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`h-4 w-4 ${
+                                    star <= review.rating
+                                      ? "text-yellow-400 fill-yellow-400"
+                                      : "text-gray-300"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <CardDescription>
+                            {review.serviceName} •{" "}
+                            {new Date(review.createdAt).toLocaleDateString()}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-gray-700">
+                            {review.comment || "No comment provided."}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Quick Actions */}
               <div className="mt-8">

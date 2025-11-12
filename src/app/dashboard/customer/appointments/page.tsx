@@ -6,11 +6,12 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { TabsList, TabsTrigger, TabsContent, Tabs } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { Calendar, Clock, BellIcon, SettingsIcon } from 'lucide-react';
+import { Calendar, Clock, SettingsIcon } from 'lucide-react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { AppointmentCard } from '@/components/dashboard/appointment-card';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { NotificationsButton } from '@/components/dashboard/notifications-button';
 
 export default function CustomerAppointmentsPage() {
   const { data: session, status } = useSession();
@@ -160,10 +161,7 @@ export default function CustomerAppointmentsPage() {
                 <h1 className="text-xl font-semibold">Appointments</h1>
               </div>
               <div className="flex items-center gap-4">
-                <Button variant="outline" size="sm">
-                  <BellIcon className="h-4 w-4 mr-2" />
-                  Notifications
-                </Button>
+                <NotificationsButton />
                 <Button variant="outline" size="icon">
                   <SettingsIcon className="h-4 w-4" />
                 </Button>

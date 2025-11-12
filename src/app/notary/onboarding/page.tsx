@@ -506,6 +506,7 @@ function NotaryOnboardingContent() {
                     <h4 className="font-medium mb-2">Profile Information</h4>
                     <div className="text-sm space-y-1 text-gray-600">
                       <p><strong>Location:</strong> {onboardingData.address}, {onboardingData.city}, {onboardingData.state}</p>
+                      <p><strong>Notary Type:</strong> {onboardingData.notaryType === 'PUBLIC' ? 'Public Notary' : 'Private Notary'}</p>
                       <p><strong>Hourly Rate:</strong> {onboardingData.hourlyRate.toLocaleString()} RWF</p>
                       <p><strong>Bio:</strong> {onboardingData.bio}</p>
                     </div>

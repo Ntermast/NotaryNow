@@ -274,6 +274,48 @@ export default function AdminNotariesPage() {
     }
   };
 
+  const handleCertificationDecision = async (
+    certificationId: string,
+    status: 'APPROVED' | 'REJECTED'
+  ) => {
+    try {
+      const response = await fetch(`/api/admin/notaries/certifications/${certificationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to update certification');
+      }
+
+      const updated = await response.json();
+
+      setSelectedNotary((prev) =>
+        prev
+          ? {
+              ...prev,
+              certifications: prev.certifications.map((cert: any) =>
+                cert.id === certificationId
+                  ? { ...cert, isApproved: updated.status === 'APPROVED', status: updated.status }
+                  : cert
+              ),
+            }
+          : prev
+      );
+
+      toast.success(
+        `Certification ${status === 'APPROVED' ? 'approved' : 'declined'} successfully`
+      );
+    } catch (error) {
+      console.error('Error updating certification:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update certification');
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-full">Loading notaries...</div>;
   }
@@ -711,7 +753,7 @@ export default function AdminNotariesPage() {
                 {selectedNotary.certifications && selectedNotary.certifications.length > 0 ? (
                   <div className="space-y-3">
                     {selectedNotary.certifications.map((cert: any, index: number) => (
-                      <div key={index} className="border rounded-lg p-4">
+                      <div key={index} className="border rounded-lg p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <div>
                             <h4 className="font-medium">{cert.name}</h4>
@@ -720,8 +762,20 @@ export default function AdminNotariesPage() {
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge className={cert.isApproved ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
-                              {cert.isApproved ? "Approved" : "Pending"}
+                            <Badge
+                              className={
+                                cert.status === 'APPROVED'
+                                  ? "bg-green-100 text-green-800"
+                                  : cert.status === 'REJECTED'
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-yellow-100 text-yellow-800"
+                              }
+                            >
+                              {cert.status === 'APPROVED'
+                                ? "Approved"
+                                : cert.status === 'REJECTED'
+                                  ? "Declined"
+                                  : "Pending"}
                             </Badge>
                             {cert.documentUrl && (
                               <Button size="sm" variant="outline" asChild>
@@ -733,6 +787,25 @@ export default function AdminNotariesPage() {
                             )}
                           </div>
                         </div>
+                        {cert.status !== 'APPROVED' && (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleCertificationDecision(cert.submissionId || cert.id, 'APPROVED')}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCertificationDecision(cert.submissionId || cert.id, 'REJECTED')}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Decline
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

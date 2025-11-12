@@ -42,6 +42,14 @@ interface NotaryCardProps {
     services: NotaryService[];
     serviceNames?: string[];
     availableForBooking?: boolean;
+    recentReviews?: Array<{
+      id: string;
+      customerName: string;
+      rating: number;
+      comment: string | null;
+      serviceName?: string;
+      createdAt: string;
+    }>;
     startingPrice: number;
     availableToday: boolean;
     experienceYears: number;
@@ -71,6 +79,11 @@ export function NotaryCard({ notary }: NotaryCardProps) {
   const notaryTypeLabel =
     notary.notaryType === 'PUBLIC' ? 'Public Notary' : 'Private Notary';
   const bookingDisabled = notary.availableForBooking === false;
+  const topReview = notary.recentReviews?.[0];
+  const serviceLabels =
+    notary.services.length > 0
+      ? notary.services.map((service) => service.name)
+      : notary.serviceNames || [];
 
   return (
     <Card className="overflow-hidden">
@@ -123,14 +136,22 @@ export function NotaryCard({ notary }: NotaryCardProps) {
           <div>
             <div className="text-sm text-gray-500 mb-1">Popular services</div>
             <div className="flex flex-wrap gap-2">
-              {featuredServices.map((service) => (
-                <Badge key={service.id} variant="secondary" className="text-xs">
-                  {service.name} • {formatCurrency(service.price)}
-                </Badge>
-              ))}
-              {remainingServiceCount > 0 && (
+              {serviceLabels.length > 0 ? (
+                <>
+                  {featuredServices.map((service) => (
+                    <Badge key={service.id} variant="secondary" className="text-xs">
+                      {service.name} • {formatCurrency(service.price)}
+                    </Badge>
+                  ))}
+                  {remainingServiceCount > 0 && (
+                    <Badge variant="outline" className="text-xs text-gray-600">
+                      +{remainingServiceCount} more
+                    </Badge>
+                  )}
+                </>
+              ) : (
                 <Badge variant="outline" className="text-xs text-gray-600">
-                  +{remainingServiceCount} more
+                  Services awaiting approval
                 </Badge>
               )}
             </div>
@@ -149,6 +170,27 @@ export function NotaryCard({ notary }: NotaryCardProps) {
               </div>
             </div>
           </div>
+
+          {topReview && (
+            <div className="mt-4 bg-gray-50 rounded-md p-3 text-sm">
+              <div className="flex items-center gap-2 mb-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`h-4 w-4 ${
+                      star <= topReview.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-gray-800">
+                {topReview.comment ? `"${topReview.comment}"` : 'Great service!'}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                — {topReview.customerName} • {topReview.serviceName}
+              </p>
+            </div>
+          )}
         </CardContent>
 
         <div className="md:w-1/4 p-6 flex flex-col justify-between bg-gray-50">

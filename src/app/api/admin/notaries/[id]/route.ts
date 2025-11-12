@@ -83,11 +83,13 @@ export async function GET(
       
       // Certifications with approval status
       certifications: notary.notaryProfile?.certifications?.map(cert => ({
-        id: cert.id,
+        id: cert.certification.id,
+        submissionId: cert.id,
         name: cert.certification.name,
         dateObtained: cert.dateObtained,
         documentUrl: cert.documentUrl,
-        isApproved: cert.status === 'APPROVED'
+        isApproved: cert.status === 'APPROVED',
+        status: cert.status
       })) || []
     };
 

@@ -117,6 +117,59 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    const recentReviewRecords =
+      notaryIds.length === 0
+        ? []
+        : await prisma.review.findMany({
+            where: {
+              appointment: {
+                notaryId: {
+                  in: notaryIds,
+                },
+              },
+            },
+            include: {
+              appointment: {
+                select: {
+                  notaryId: true,
+                  service: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                },
+              },
+              customer: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 100,
+          });
+
+    const recentReviewsMap = new Map<string, any[]>();
+    recentReviewRecords.forEach((review) => {
+      const notaryId = review.appointment.notaryId;
+      if (!recentReviewsMap.has(notaryId)) {
+        recentReviewsMap.set(notaryId, []);
+      }
+      const bucket = recentReviewsMap.get(notaryId)!;
+      if (bucket.length < 3) {
+        bucket.push({
+          id: review.id,
+          customerName: review.customer.name,
+          rating: review.rating,
+          comment: review.comment,
+          serviceName: review.appointment.service.name,
+          createdAt: review.createdAt,
+        });
+      }
+    });
+
     const reviewStats = new Map<
       string,
       {
@@ -187,6 +240,7 @@ export async function GET(request: NextRequest) {
               : profile.averageRating,
           reviewCount: stats?.count ?? 0,
           services,
+          recentReviews: recentReviewsMap.get(profile.user.id) || [],
           serviceNames: services.map((service) => service.name),
           availableForBooking: hasBookableServices,
           certifications: profile.certifications.map((c) => ({

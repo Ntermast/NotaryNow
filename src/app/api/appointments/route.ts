@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/auth-options";
 import { NotificationService } from "@/lib/notifications";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 // Validation schemas
 const appointmentQuerySchema = z.object({
@@ -169,31 +170,19 @@ export async function POST(request: NextRequest) {
       appointmentStart.getTime() + appointmentDuration * 60000
     );
 
-    const activeAppointments = await prisma.appointment.findMany({
-      where: {
-        notaryId,
-        status: { in: ["PENDING", "CONFIRMED"] },
-        scheduledTime: {
-          lt: appointmentEnd,
-        },
-      },
-      select: {
-        id: true,
-        scheduledTime: true,
-        duration: true,
-      },
-    });
+    const conflict = await prisma.$queryRaw<Array<{ id: string }>>(
+      Prisma.sql`
+        SELECT "id"
+        FROM "Appointment"
+        WHERE "notaryId" = ${notaryId}
+          AND "status" IN ('PENDING', 'CONFIRMED')
+          AND "scheduledTime" < ${appointmentEnd.toISOString()}
+          AND datetime("scheduledTime", '+' || "duration" || ' minutes') > ${appointmentStart.toISOString()}
+        LIMIT 1
+      `
+    );
 
-    const hasConflict = activeAppointments.some((existing) => {
-      const existingStart = new Date(existing.scheduledTime);
-      const existingEnd = new Date(
-        existingStart.getTime() + (existing.duration || 60) * 60000
-      );
-
-      return appointmentStart < existingEnd && appointmentEnd > existingStart;
-    });
-
-    if (hasConflict) {
+    if (conflict.length > 0) {
       return NextResponse.json(
         { 
           error: "Time slot conflict", 

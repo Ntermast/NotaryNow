@@ -88,9 +88,11 @@ export async function GET(request: NextRequest) {
       })),
       certifications: profile.certifications.map(c => ({
         id: c.certification.id,
+        submissionId: c.id,
         name: c.certification.name,
         dateObtained: c.dateObtained,
-        documentUrl: c.documentUrl
+        documentUrl: c.documentUrl,
+        status: c.status
       }))
     }));
 
