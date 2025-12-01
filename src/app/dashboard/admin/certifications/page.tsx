@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, CheckCircle, XCircle, Edit, Trash2, Award } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, Edit, Trash2, Award, FileText, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
@@ -24,7 +24,9 @@ interface PendingApproval {
   id: string;
   certificationName: string;
   notaryName: string;
+  notaryEmail: string;
   dateObtained: string;
+  documentUrl: string | null;
 }
 
 export default function AdminCertificationsPage() {
@@ -214,13 +216,20 @@ export default function AdminCertificationsPage() {
   // Reject certification handler
   const handleReject = async (id: string) => {
     try {
-      // In a real app you'd call a reject API endpoint
-      // For now, we'll just remove it from the UI
-      setPendingApprovals(prev => prev.filter(item => item.id !== id));
-      toast.success('Certification rejected');
-    } catch (error) {
+      const response = await fetch(`/api/admin/certifications/reject/${id}`, {
+        method: 'PATCH'
+      });
+
+      if (response.ok) {
+        setPendingApprovals(prev => prev.filter(item => item.id !== id));
+        toast.success('Certification rejected');
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to reject certification');
+      }
+    } catch (error: any) {
       console.error('Error rejecting certification:', error);
-      toast.error('Failed to reject certification');
+      toast.error(error instanceof Error ? error.message : 'Failed to reject certification');
     }
   };
 
@@ -249,13 +258,39 @@ export default function AdminCertificationsPage() {
           <div className="space-y-4">
             {pendingApprovals.map((item) => (
               <div key={item.id} className="bg-white p-4 rounded-lg shadow">
-                <div className="flex justify-between items-center">
-                  <div>
+                <div className="flex flex-col md:flex-row md:justify-between gap-4">
+                  <div className="flex-1">
                     <h3 className="font-semibold">{item.certificationName}</h3>
                     <p className="text-sm text-gray-500">Submitted by: {item.notaryName}</p>
-                    <p className="text-sm text-gray-500">Date: {new Date(item.dateObtained).toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-500">Email: {item.notaryEmail}</p>
+                    <p className="text-sm text-gray-500">Date Obtained: {new Date(item.dateObtained).toLocaleDateString()}</p>
                   </div>
-                  <div className="flex gap-2">
+
+                  {/* Document Preview Section */}
+                  <div className="flex flex-col gap-2">
+                    {item.documentUrl ? (
+                      <div className="border rounded-lg p-3 bg-gray-50">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Uploaded Document</p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          asChild
+                        >
+                          <a href={item.documentUrl} target="_blank" rel="noopener noreferrer">
+                            <FileText className="h-4 w-4 mr-1" />
+                            View Document
+                            <ExternalLink className="h-3 w-3 ml-1" />
+                          </a>
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="border rounded-lg p-3 bg-yellow-50 text-yellow-800">
+                        <p className="text-sm">No document uploaded</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 md:self-center">
                     <Button
                       size="sm"
                       variant="destructive"

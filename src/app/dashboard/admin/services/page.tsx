@@ -6,11 +6,27 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Edit, Trash2, Plus, DollarSign } from 'lucide-react';
+import { Edit, Trash2, Plus, DollarSign, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+
+interface PendingServiceRequest {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  serviceDescription: string;
+  basePrice: number;
+  customPrice: number | null;
+  notaryId: string;
+  notaryName: string;
+  notaryEmail: string;
+  status: string;
+  createdAt: string;
+}
 
 export default function AdminServicesPage() {
   const [services, setServices] = useState<any[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<PendingServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -22,22 +38,82 @@ export default function AdminServicesPage() {
   const [formBasePrice, setFormBasePrice] = useState('');
 
   useEffect(() => {
-    async function fetchServices() {
+    async function fetchData() {
       try {
-        const response = await fetch('/api/services');
-        if (response.ok) {
-          const data = await response.json();
+        // Fetch services
+        const servicesResponse = await fetch('/api/services');
+        if (servicesResponse.ok) {
+          const data = await servicesResponse.json();
           setServices(data);
         }
+
+        // Fetch pending service requests
+        const pendingResponse = await fetch('/api/admin/services/pending');
+        if (pendingResponse.ok) {
+          const pendingData = await pendingResponse.json();
+          setPendingRequests(pendingData);
+        }
+
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching services:', error);
+        console.error('Error fetching data:', error);
         setLoading(false);
       }
     }
-    
-    fetchServices();
+
+    fetchData();
   }, []);
+
+  // Handle service approval
+  const handleApproveService = async (requestId: string) => {
+    try {
+      const response = await fetch(`/api/admin/notaries/services/${requestId}/approve`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to approve service');
+      }
+
+      // Remove from pending list
+      setPendingRequests(prev => prev.filter(req => req.id !== requestId));
+      toast.success('Service request approved');
+    } catch (error) {
+      console.error('Error approving service:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to approve service');
+    }
+  };
+
+  // Handle service rejection
+  const handleRejectService = async (requestId: string) => {
+    const reason = window.prompt('Please provide a reason for rejection (optional):') || undefined;
+
+    try {
+      const response = await fetch(`/api/admin/notaries/services/${requestId}/reject`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reason }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to reject service');
+      }
+
+      // Remove from pending list
+      setPendingRequests(prev => prev.filter(req => req.id !== requestId));
+      toast.success('Service request rejected');
+    } catch (error) {
+      console.error('Error rejecting service:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to reject service');
+    }
+  };
 
   if (loading) {
     return <div>Loading services...</div>;
@@ -193,6 +269,74 @@ export default function AdminServicesPage() {
         </Button>
       </div>
 
+      {/* Pending Service Requests Section */}
+      {pendingRequests.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-lg font-medium mb-4 flex items-center">
+            <Clock className="h-5 w-5 mr-2 text-yellow-500" />
+            Pending Service Requests
+            <Badge className="ml-2 bg-yellow-500">{pendingRequests.length}</Badge>
+          </h2>
+
+          <div className="space-y-4">
+            {pendingRequests.map((request) => (
+              <div key={request.id} className="bg-white p-4 rounded-lg shadow border-l-4 border-yellow-500">
+                <div className="flex flex-col md:flex-row md:justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold">{request.serviceName}</h3>
+                      <Badge variant="secondary">Service Request</Badge>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">{request.serviceDescription}</p>
+                    <div className="text-sm space-y-1">
+                      <p>
+                        <span className="text-gray-500">Requested by: </span>
+                        <span className="font-medium">{request.notaryName}</span>
+                        <span className="text-gray-500"> ({request.notaryEmail})</span>
+                      </p>
+                      <p>
+                        <span className="text-gray-500">Base Price: </span>
+                        <span className="font-medium">{Number(request.basePrice).toLocaleString()} RWF</span>
+                      </p>
+                      {request.customPrice !== null && (
+                        <p>
+                          <span className="text-gray-500">Custom Price: </span>
+                          <span className="font-medium">{Number(request.customPrice).toLocaleString()} RWF</span>
+                        </p>
+                      )}
+                      <p>
+                        <span className="text-gray-500">Requested: </span>
+                        <span>{new Date(request.createdAt).toLocaleDateString()}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 md:self-center">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleRejectService(request.id)}
+                    >
+                      <XCircle className="h-4 w-4 mr-1" />
+                      Reject
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleApproveService(request.id)}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Approve
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* All Services Section */}
+      <h2 className="text-lg font-medium mb-4">All Services</h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {services.map((service) => (
           <div

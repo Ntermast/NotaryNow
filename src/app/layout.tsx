@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/providers/auth-provider";
 import { ToastProvider } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/ui/sonner";
 import { SessionInfo } from "@/components/debug/session-info";
 import "./globals.css";
 
@@ -34,6 +35,7 @@ export default function RootLayout({
           <ToastProvider>
             {children}
             {process.env.NODE_ENV === "development" && <SessionInfo />}
+            <Toaster richColors position="top-center" />
           </ToastProvider>
         </AuthProvider>
       </body>
