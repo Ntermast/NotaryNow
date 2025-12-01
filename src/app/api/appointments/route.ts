@@ -170,11 +170,14 @@ export async function POST(request: NextRequest) {
       appointmentStart.getTime() + appointmentDuration * 60000
     );
 
-    const conflict = await prisma.$queryRaw<Array<{ id: string }>>(
+    // Check if the same customer already booked this exact service at this time
+    const duplicateServiceBooking = await prisma.$queryRaw<Array<{ id: string }>>(
       Prisma.sql`
         SELECT "id"
         FROM "Appointment"
         WHERE "notaryId" = ${notaryId}
+          AND "customerId" = ${userId}
+          AND "serviceId" = ${serviceId}
           AND "status" IN ('PENDING', 'CONFIRMED')
           AND "scheduledTime" < ${appointmentEnd.toISOString()}
           AND datetime("scheduledTime", '+' || "duration" || ' minutes') > ${appointmentStart.toISOString()}
@@ -182,11 +185,35 @@ export async function POST(request: NextRequest) {
       `
     );
 
-    if (conflict.length > 0) {
+    if (duplicateServiceBooking.length > 0) {
       return NextResponse.json(
-        { 
-          error: "Time slot conflict", 
-          message: "The selected time slot conflicts with another appointment. Please choose a different time." 
+        {
+          error: "Duplicate booking",
+          message: "You have already booked this service at this time slot."
+        },
+        { status: 409 }
+      );
+    }
+
+    // Check if a DIFFERENT customer has booked this time slot
+    const conflictWithOtherCustomer = await prisma.$queryRaw<Array<{ id: string }>>(
+      Prisma.sql`
+        SELECT "id"
+        FROM "Appointment"
+        WHERE "notaryId" = ${notaryId}
+          AND "customerId" != ${userId}
+          AND "status" IN ('PENDING', 'CONFIRMED')
+          AND "scheduledTime" < ${appointmentEnd.toISOString()}
+          AND datetime("scheduledTime", '+' || "duration" || ' minutes') > ${appointmentStart.toISOString()}
+        LIMIT 1
+      `
+    );
+
+    if (conflictWithOtherCustomer.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Time slot conflict",
+          message: "The selected time slot conflicts with another appointment. Please choose a different time."
         },
         { status: 409 }
       );
