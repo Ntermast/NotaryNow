@@ -38,9 +38,9 @@ export function NotificationsButton({
   const [loading, setLoading] = useState(false);
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const response = await fetch("/api/notifications?limit=20");
       if (!response.ok) {
         throw new Error("Failed to fetch notifications");
@@ -50,13 +50,26 @@ export function NotificationsButton({
     } catch (error) {
       console.error("Error fetching notifications:", error);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
+  // Fetch notifications on mount and periodically
+  useEffect(() => {
+    fetchNotifications(false); // Initial fetch without loading indicator
+
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(() => {
+      fetchNotifications(false);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Refetch when dialog opens
   useEffect(() => {
     if (open) {
-      fetchNotifications();
+      fetchNotifications(true);
     }
   }, [open]);
 
@@ -75,6 +88,19 @@ export function NotificationsButton({
     }
   };
 
+  const markAllAsRead = async () => {
+    try {
+      await fetch("/api/notifications/mark-all-read", {
+        method: "POST",
+      });
+      setNotifications((prev) =>
+        prev.map((notification) => ({ ...notification, read: true }))
+      );
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
+    }
+  };
+
   return (
     <>
       <Button variant={variant} size={size} onClick={() => setOpen(true)}>
@@ -89,7 +115,14 @@ export function NotificationsButton({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Notifications</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>Notifications</DialogTitle>
+              {unreadCount > 0 && (
+                <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+                  Mark all as read
+                </Button>
+              )}
+            </div>
             <DialogDescription>
               Stay on top of approvals, reviews, and account activity.
             </DialogDescription>

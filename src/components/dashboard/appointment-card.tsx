@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar, Clock, MapPin, Star } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 
 interface AppointmentCardProps {
   appointment: {
@@ -28,6 +28,8 @@ interface AppointmentCardProps {
 export function AppointmentCard({ appointment, onCancel, onReschedule, onReview }: AppointmentCardProps) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -56,9 +58,19 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
     !appointment.rated &&
     (appointment.status === 'COMPLETED' || appointmentDate < new Date());
 
-  const handleReviewSubmit = () => {
-    if (onReview) {
-      onReview(appointment.id, rating, comment);
+  const handleReviewSubmit = async () => {
+    if (onReview && rating > 0) {
+      setIsSubmitting(true);
+      try {
+        await onReview(appointment.id, rating, comment);
+        setIsReviewDialogOpen(false);
+        setRating(0);
+        setComment('');
+      } catch (error) {
+        console.error('Error submitting review:', error);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -125,7 +137,7 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
         )}
         
         {canReview && onReview && (
-          <Dialog>
+          <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm">Leave Review</Button>
             </DialogTrigger>
@@ -136,13 +148,13 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
                   Share your experience with {appointment.notaryName}
                 </DialogDescription>
               </DialogHeader>
-              
+
               <div className="py-4 space-y-4">
                 <div>
                   <p className="text-sm font-medium mb-2">Rating</p>
                   <div className="flex items-center">
                     {[1, 2, 3, 4, 5].map((star) => (
-                      <Star 
+                      <Star
                         key={star}
                         className={`h-6 w-6 cursor-pointer ${star <= rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
                         onClick={() => setRating(star)}
@@ -150,10 +162,10 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
                     ))}
                   </div>
                 </div>
-                
+
                 <div>
                   <label htmlFor="comment" className="text-sm font-medium">
-                    Comments
+                    Comments (optional)
                   </label>
                   <Textarea
                     id="comment"
@@ -164,10 +176,14 @@ export function AppointmentCard({ appointment, onCancel, onReschedule, onReview 
                   />
                 </div>
               </div>
-              
+
               <DialogFooter>
-                <Button type="button" onClick={handleReviewSubmit} disabled={rating === 0}>
-                  Submit Review
+                <Button
+                  type="button"
+                  onClick={handleReviewSubmit}
+                  disabled={rating === 0 || isSubmitting}
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Review'}
                 </Button>
               </DialogFooter>
             </DialogContent>

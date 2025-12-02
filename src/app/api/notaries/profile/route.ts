@@ -7,15 +7,13 @@ import { z } from "zod";
 
 // Validation schema
 const updateNotaryProfileSchema = z.object({
-  address: z.string().min(1, "Address is required").max(200, "Address too long"),
-  city: z.string().min(1, "City is required").max(100, "City name too long"),
-  state: z.string().min(2, "Province/State is required").max(50, "Province name too long"),
-  zip: z.string().min(1, "Postal code is required").max(20, "Postal code too long"),
-  hourlyRate: z.number().min(0, "Rate must be positive").max(1000000, "Rate too high"),
-  bio: z.string().max(1000, "Bio too long").optional(),
-  notaryType: z.enum(["PUBLIC", "PRIVATE"], {
-    required_error: "Please choose the notary type",
-  }),
+  address: z.string().max(200, "Address too long").optional(),
+  city: z.string().max(100, "City name too long").optional(),
+  state: z.string().max(50, "Province name too long").optional(),
+  zip: z.string().max(20, "Postal code too long").optional(),
+  hourlyRate: z.number().min(0, "Rate must be positive").max(10000000, "Rate too high").optional(),
+  bio: z.string().max(1000, "Bio too long").optional().nullable(),
+  notaryType: z.enum(["PUBLIC", "PRIVATE"]).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -92,20 +90,22 @@ export async function PATCH(request: NextRequest) {
 
     const { address, city, state, zip, hourlyRate, bio, notaryType } = validatedData.data;
 
+    // Build update data only with provided fields
+    const updateData: any = {};
+    if (address !== undefined) updateData.address = address;
+    if (city !== undefined) updateData.city = city;
+    if (state !== undefined) updateData.state = state;
+    if (zip !== undefined) updateData.zip = zip;
+    if (hourlyRate !== undefined) updateData.hourlyRate = hourlyRate;
+    if (bio !== undefined) updateData.bio = bio || null;
+    if (notaryType !== undefined) updateData.notaryType = notaryType;
+
     // Update notary profile
     const updatedProfile = await prisma.notaryProfile.update({
       where: {
         userId: userId,
       },
-      data: {
-        address,
-        city,
-        state,
-        zip,
-        hourlyRate,
-        bio,
-        notaryType,
-      },
+      data: updateData,
     });
 
     return NextResponse.json(updatedProfile);

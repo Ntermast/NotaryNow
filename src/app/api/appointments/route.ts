@@ -170,53 +170,50 @@ export async function POST(request: NextRequest) {
       appointmentStart.getTime() + appointmentDuration * 60000
     );
 
-    // Check if the same customer already booked this exact service at this time
-    const duplicateServiceBooking = await prisma.$queryRaw<Array<{ id: string }>>(
+    // Check for any conflicting appointments at this time slot
+    const conflictingAppointments = await prisma.$queryRaw<Array<{ id: string; customerId: string; serviceId: string }>>(
       Prisma.sql`
-        SELECT "id"
+        SELECT "id", "customerId", "serviceId"
         FROM "Appointment"
         WHERE "notaryId" = ${notaryId}
-          AND "customerId" = ${userId}
-          AND "serviceId" = ${serviceId}
           AND "status" IN ('PENDING', 'CONFIRMED')
           AND "scheduledTime" < ${appointmentEnd.toISOString()}
           AND datetime("scheduledTime", '+' || "duration" || ' minutes') > ${appointmentStart.toISOString()}
-        LIMIT 1
       `
     );
 
-    if (duplicateServiceBooking.length > 0) {
-      return NextResponse.json(
-        {
-          error: "Duplicate booking",
-          message: "You have already booked this service at this time slot."
-        },
-        { status: 409 }
+    if (conflictingAppointments.length > 0) {
+      // Check if any conflict is from a different customer - block immediately
+      const conflictWithOtherCustomer = conflictingAppointments.find(
+        (apt) => apt.customerId !== userId
       );
-    }
 
-    // Check if a DIFFERENT customer has booked this time slot
-    const conflictWithOtherCustomer = await prisma.$queryRaw<Array<{ id: string }>>(
-      Prisma.sql`
-        SELECT "id"
-        FROM "Appointment"
-        WHERE "notaryId" = ${notaryId}
-          AND "customerId" != ${userId}
-          AND "status" IN ('PENDING', 'CONFIRMED')
-          AND "scheduledTime" < ${appointmentEnd.toISOString()}
-          AND datetime("scheduledTime", '+' || "duration" || ' minutes') > ${appointmentStart.toISOString()}
-        LIMIT 1
-      `
-    );
+      if (conflictWithOtherCustomer) {
+        return NextResponse.json(
+          {
+            error: "Time slot conflict",
+            message: "The selected time slot is already booked. Please choose a different time."
+          },
+          { status: 409 }
+        );
+      }
 
-    if (conflictWithOtherCustomer.length > 0) {
-      return NextResponse.json(
-        {
-          error: "Time slot conflict",
-          message: "The selected time slot conflicts with another appointment. Please choose a different time."
-        },
-        { status: 409 }
+      // Check if same customer already has this exact service at this time
+      const duplicateService = conflictingAppointments.find(
+        (apt) => apt.customerId === userId && apt.serviceId === serviceId
       );
+
+      if (duplicateService) {
+        return NextResponse.json(
+          {
+            error: "Duplicate booking",
+            message: "You have already booked this service at this time slot."
+          },
+          { status: 409 }
+        );
+      }
+
+      // If we reach here, same customer is booking a DIFFERENT service at the same time - allow it
     }
 
     // Create the appointment

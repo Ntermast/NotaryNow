@@ -104,36 +104,35 @@ export default function CustomerAppointmentsPage() {
   };
 
   const handleReviewSubmit = async (id: string, rating: number, comment: string) => {
-    try {
-      const response = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          appointmentId: id,
-          rating,
-          comment: comment || '',
-        }),
-      });
+    const response = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        appointmentId: id,
+        rating,
+        comment: comment || '',
+      }),
+    });
 
-      if (!response.ok) throw new Error('Failed to submit review');
-      
-      // Update local state
-      setPastAppointments(prev => 
-        prev.map(app => 
-          app.id === id ? { 
-            ...app, 
-            reviews: [...(app.reviews || []), { rating, comment, createdAt: new Date() }] 
-          } : app
-        )
-      );
-      
-      toast.success('Review submitted successfully');
-    } catch (error) {
-      console.error('Error submitting review:', error);
-      toast.error('Failed to submit review');
+    if (!response.ok) {
+      const error = await response.json();
+      toast.error(error.error || 'Failed to submit review');
+      throw new Error(error.error || 'Failed to submit review');
     }
+
+    // Update local state
+    setPastAppointments(prev =>
+      prev.map(app =>
+        app.id === id ? {
+          ...app,
+          reviews: [...(app.reviews || []), { rating, comment, createdAt: new Date() }]
+        } : app
+      )
+    );
+
+    toast.success('Review submitted successfully! Thank you for your feedback.');
   };
 
   if (status === "loading" || loading) {
