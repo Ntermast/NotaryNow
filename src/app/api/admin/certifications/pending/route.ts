@@ -18,10 +18,7 @@ export async function GET(request: NextRequest) {
     // Get all notary certifications pending approval
     const pendingCertifications = await prisma.notaryCertification.findMany({
       where: {
-        status: "PENDING",
-        documentUrl: {
-          not: null
-        }
+        status: "PENDING"
       },
       include: {
         notaryProfile: {

@@ -292,27 +292,36 @@ export default function NotarySettings() {
         try {
             const method = isChecked ? "POST" : "DELETE";
 
-            const response = await fetch(`/api/notary/services/${serviceId}`, {
+            const response = await fetch(`/api/notaries/services/${serviceId}`, {
                 method,
                 headers: {
                     "Content-Type": "application/json",
                 },
             });
 
-            if (!response.ok) throw new Error(`Failed to ${isChecked ? 'add' : 'remove'} service`);
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || `Failed to ${isChecked ? 'add' : 'remove'} service`);
+            }
+
+            const result = await response.json();
 
             // Update the UI
             setProfile((prev: any) => ({
                 ...prev,
                 notaryServices: isChecked
-                    ? [...(prev?.notaryServices || []), { serviceId }]
+                    ? [...(prev?.notaryServices || []), { serviceId, status: result.status || 'PENDING' }]
                     : prev?.notaryServices?.filter((s: any) => s.serviceId !== serviceId)
             }));
 
-            toast.success(`The service has been ${isChecked ? 'added to' : 'removed from'} your profile`);
+            if (isChecked) {
+                toast.success('Service request submitted. It will be reviewed by an administrator.');
+            } else {
+                toast.success('Service removed from your profile');
+            }
         } catch (error) {
             console.error("Error toggling service:", error);
-            toast.error(`Failed to ${isChecked ? 'add' : 'remove'} the service`);
+            toast.error(error instanceof Error ? error.message : `Failed to ${isChecked ? 'add' : 'remove'} the service`);
         }
     };
 
@@ -564,41 +573,52 @@ export default function NotarySettings() {
                                         <CardHeader>
                                             <CardTitle>Services Offered</CardTitle>
                                             <CardDescription>
-                                                Select the services you provide to customers
-                                                {profile?.isApproved && (
-                                                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
-                                                        ✓ Service selection is locked after approval for security.
-                                                    </div>
-                                                )}
+                                                Select the services you want to offer. Each service requires admin approval before it becomes active.
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent>
                                             <div className="space-y-4">
-                                                {services.map((service) => (
-                                                    <div key={service.id} className="flex items-start space-x-3">
-                                                        <Checkbox
-                                                            id={`service-${service.id}`}
-                                                            checked={profile.notaryServices.some(
-                                                                (s) => s.serviceId === service.id
-                                                            )}
-                                                            onCheckedChange={(checked) =>
-                                                                handleServiceToggle(service.id, checked === true)
-                                                            }
-                                                            disabled={profile?.isApproved}
-                                                        />
-                                                        <div className="grid gap-1.5">
-                                                            <Label
-                                                                htmlFor={`service-${service.id}`}
-                                                                className="font-medium"
-                                                            >
-                                                                {service.name} - ${service.basePrice}
-                                                            </Label>
-                                                            <p className="text-sm text-gray-500">
-                                                                {service.description}
-                                                            </p>
+                                                {services.map((service) => {
+                                                    const notaryService = profile.notaryServices.find(
+                                                        (s: any) => s.serviceId === service.id
+                                                    );
+                                                    const isSelected = !!notaryService;
+                                                    const status = notaryService?.status;
+
+                                                    return (
+                                                        <div key={service.id} className="flex items-start space-x-3 p-3 border rounded-lg">
+                                                            <Checkbox
+                                                                id={`service-${service.id}`}
+                                                                checked={isSelected}
+                                                                onCheckedChange={(checked) =>
+                                                                    handleServiceToggle(service.id, checked === true)
+                                                                }
+                                                            />
+                                                            <div className="grid gap-1.5 flex-1">
+                                                                <div className="flex items-center justify-between">
+                                                                    <Label
+                                                                        htmlFor={`service-${service.id}`}
+                                                                        className="font-medium"
+                                                                    >
+                                                                        {service.name} - {Number(service.basePrice).toLocaleString()} RWF
+                                                                    </Label>
+                                                                    {isSelected && status && (
+                                                                        <span className={`text-xs px-2 py-1 rounded-full ${
+                                                                            status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                                                                            status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                                                                            'bg-red-100 text-red-800'
+                                                                        }`}>
+                                                                            {status}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-sm text-gray-500">
+                                                                    {service.description}
+                                                                </p>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         </CardContent>
                                     </Card>
