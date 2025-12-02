@@ -8,17 +8,15 @@ import { NotificationService } from "@/lib/notifications";
 
 // Validation schemas
 const addCertificationSchema = z.object({
-  dateObtained: z.string().datetime("Invalid date format").optional(),
-  documentUrl: z.string().url("Invalid URL format").optional(),
+  dateObtained: z.string().optional(),
+  documentUrl: z.string().optional(),
 });
 
 const updateCertificationSchema = z.object({
-  dateObtained: z.string().datetime("Invalid date format").optional(),
-  documentUrl: z.string().url("Invalid URL format").optional(),
-}).refine(
-  (data) => Object.keys(data).length > 0,
-  { message: "At least one field must be provided" }
-);
+  certificationId: z.string().optional(),
+  dateObtained: z.string().optional(),
+  documentUrl: z.string().optional(),
+});
 
 // Add a certification to a notary profile
 export async function POST(
@@ -237,17 +235,30 @@ export async function PATCH(
       );
     }
 
+    // Find the existing notary certification by ID
+    const existingCert = await prisma.notaryCertification.findFirst({
+      where: {
+        id: id,
+        notaryProfileId: notaryProfile.id,
+      },
+    });
+
+    if (!existingCert) {
+      return NextResponse.json(
+        { error: "Certification not found in your profile" },
+        { status: 404 }
+      );
+    }
+
     // Update the certification
     const updatedCertification = await prisma.notaryCertification.update({
       where: {
-        notaryProfileId_certificationId: {
-          notaryProfileId: notaryProfile.id,
-          certificationId: id,
-        },
+        id: id,
       },
       data: {
         dateObtained: dateObtained ? new Date(dateObtained) : undefined,
         documentUrl: documentUrl || undefined,
+        status: "PENDING", // Reset to pending when updated
       },
       include: {
         certification: true,

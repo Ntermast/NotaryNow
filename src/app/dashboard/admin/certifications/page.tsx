@@ -263,7 +263,9 @@ export default function AdminCertificationsPage() {
                     <h3 className="font-semibold">{item.certificationName}</h3>
                     <p className="text-sm text-gray-500">Submitted by: {item.notaryName}</p>
                     <p className="text-sm text-gray-500">Email: {item.notaryEmail}</p>
-                    <p className="text-sm text-gray-500">Date Obtained: {new Date(item.dateObtained).toLocaleDateString()}</p>
+                    {item.dateObtained && (
+                      <p className="text-sm text-gray-500">Date Obtained: {new Date(item.dateObtained).toLocaleDateString()}</p>
+                    )}
                   </div>
 
                   {/* Document Preview Section */}

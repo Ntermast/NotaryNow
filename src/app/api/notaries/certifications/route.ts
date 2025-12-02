@@ -8,9 +8,9 @@ import { NotificationService } from "@/lib/notifications";
 
 // Validation schema
 const addCertificationSchema = z.object({
-  certificationId: z.string().cuid("Invalid certification ID"),
+  certificationId: z.string().min(1, "Certification ID is required"),
   dateObtained: z.string().min(1, "Date is required"),
-  documentUrl: z.string().url("Invalid URL format").optional(),
+  documentUrl: z.string().min(1, "Document is required").optional(),
 });
 
 // Add a new certification to the notary's profile
