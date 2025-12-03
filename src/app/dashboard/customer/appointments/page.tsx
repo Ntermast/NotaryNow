@@ -43,15 +43,16 @@ export default function CustomerAppointmentsPage() {
           setAppointments(data);
           
           // Split appointments into upcoming and past
+          // COMPLETED and CANCELLED appointments always go to past
           const now = new Date();
           const upcoming = data.filter((app: any) => {
             const appDate = new Date(app.scheduledTime);
-            return appDate >= now && app.status !== 'CANCELLED';
+            return appDate >= now && app.status !== 'CANCELLED' && app.status !== 'COMPLETED';
           });
-          
+
           const past = data.filter((app: any) => {
             const appDate = new Date(app.scheduledTime);
-            return appDate < now || app.status === 'CANCELLED';
+            return appDate < now || app.status === 'CANCELLED' || app.status === 'COMPLETED';
           });
           
           setUpcomingAppointments(upcoming);

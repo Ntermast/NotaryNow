@@ -41,30 +41,30 @@ export default function AdminCertificationsPage() {
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        // Load certifications
-        const response = await fetch('/api/admin/certifications');
-        if (response.ok) {
-          const data = await response.json();
-          setCertifications(data);
-        }
-        
-        // Load pending approvals
-        const pendingResponse = await fetch('/api/admin/certifications/pending');
-        if (pendingResponse.ok) {
-          const pendingData = await pendingResponse.json();
-          setPendingApprovals(pendingData);
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching certifications:', error);
-        setLoading(false);
+  const fetchData = async () => {
+    try {
+      // Load certifications
+      const response = await fetch('/api/admin/certifications');
+      if (response.ok) {
+        const data = await response.json();
+        setCertifications(data);
       }
+
+      // Load pending approvals
+      const pendingResponse = await fetch('/api/admin/certifications/pending');
+      if (pendingResponse.ok) {
+        const pendingData = await pendingResponse.json();
+        setPendingApprovals(pendingData);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching certifications:', error);
+      setLoading(false);
     }
-    
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -200,14 +200,14 @@ export default function AdminCertificationsPage() {
       });
 
       if (response.ok) {
-        // Remove from pending list
-        setPendingApprovals(prev => prev.filter(item => item.id !== id));
         toast.success('Certification approved successfully');
+        // Refetch data to update counts and pending list
+        await fetchData();
       } else {
         const error = await response.json();
         throw new Error(error.error || 'Failed to approve certification');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error approving certification:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to approve certification');
     }
@@ -221,13 +221,14 @@ export default function AdminCertificationsPage() {
       });
 
       if (response.ok) {
-        setPendingApprovals(prev => prev.filter(item => item.id !== id));
         toast.success('Certification rejected');
+        // Refetch data to update counts and pending list
+        await fetchData();
       } else {
         const error = await response.json();
         throw new Error(error.error || 'Failed to reject certification');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error rejecting certification:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to reject certification');
     }

@@ -4,7 +4,6 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/auth-options";
 import { NotificationService } from "@/lib/notifications";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
 
 // Validation schemas
 const appointmentQuerySchema = z.object({
@@ -171,16 +170,33 @@ export async function POST(request: NextRequest) {
     );
 
     // Check for any conflicting appointments at this time slot
-    const conflictingAppointments = await prisma.$queryRaw<Array<{ id: string; customerId: string; serviceId: string }>>(
-      Prisma.sql`
-        SELECT "id", "customerId", "serviceId"
-        FROM "Appointment"
-        WHERE "notaryId" = ${notaryId}
-          AND "status" IN ('PENDING', 'CONFIRMED')
-          AND "scheduledTime" < ${appointmentEnd.toISOString()}
-          AND datetime("scheduledTime", '+' || "duration" || ' minutes') > ${appointmentStart.toISOString()}
-      `
-    );
+    // Get all active appointments for this notary that could potentially overlap
+    const existingAppointments = await prisma.appointment.findMany({
+      where: {
+        notaryId: notaryId,
+        status: {
+          in: ['PENDING', 'CONFIRMED']
+        }
+      },
+      select: {
+        id: true,
+        customerId: true,
+        serviceId: true,
+        scheduledTime: true,
+        duration: true
+      }
+    });
+
+    // Check for conflicts manually (more reliable than raw SQL with datetime functions)
+    const conflictingAppointments = existingAppointments.filter(apt => {
+      const existingStart = new Date(apt.scheduledTime).getTime();
+      const existingEnd = existingStart + (apt.duration * 60000);
+      const newStart = appointmentStart.getTime();
+      const newEnd = appointmentEnd.getTime();
+
+      // Check if time ranges overlap
+      return newStart < existingEnd && newEnd > existingStart;
+    });
 
     if (conflictingAppointments.length > 0) {
       // Check if any conflict is from a different customer - block immediately

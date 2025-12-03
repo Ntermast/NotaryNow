@@ -643,15 +643,27 @@ export default function NotarySettings() {
                                                                     {cert.description}
                                                                 </p>
                                                             </div>
-                                                            <div>
+                                                            <div className="flex items-center gap-2">
+                                                                {profile.certifications.find(
+                                                                    (c: any) => c.certificationId === cert.id
+                                                                )?.status && (
+                                                                    <span className={`text-xs px-2 py-1 rounded-full ${
+                                                                        profile.certifications.find((c: any) => c.certificationId === cert.id)?.status === 'APPROVED'
+                                                                            ? 'bg-green-100 text-green-800'
+                                                                            : profile.certifications.find((c: any) => c.certificationId === cert.id)?.status === 'PENDING'
+                                                                            ? 'bg-yellow-100 text-yellow-800'
+                                                                            : 'bg-red-100 text-red-800'
+                                                                    }`}>
+                                                                        {profile.certifications.find((c: any) => c.certificationId === cert.id)?.status}
+                                                                    </span>
+                                                                )}
                                                                 <Button
                                                                     variant="outline"
                                                                     size="sm"
                                                                     onClick={() => openCertificationDialog(cert)}
-                                                                    disabled={profile?.isApproved}
                                                                 >
                                                                     {profile.certifications.some(
-                                                                        (c) => c.certificationId === cert.id
+                                                                        (c: any) => c.certificationId === cert.id
                                                                     )
                                                                         ? "Update"
                                                                         : "Add"}
@@ -696,13 +708,9 @@ export default function NotarySettings() {
                                             </div>
                                         </CardContent>
                                         <CardFooter>
-                                            <Button 
-                                                variant="outline"
-                                                onClick={() => setCertificationDialog({ open: true, certification: null })}
-                                            >
-                                                <Upload className="h-4 w-4 mr-2" />
-                                                Upload New Certification
-                                            </Button>
+                                            <p className="text-sm text-gray-500">
+                                                Click "Add" on any certification above to upload your documents.
+                                            </p>
                                         </CardFooter>
                                     </Card>
                                 </TabsContent>
