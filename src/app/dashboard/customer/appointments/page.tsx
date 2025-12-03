@@ -193,17 +193,19 @@ export default function CustomerAppointmentsPage() {
                     <div className="space-y-4">
                       {upcomingAppointments.length > 0 ? (
                         upcomingAppointments.map((appointment) => (
-                          <AppointmentCard 
-                            key={appointment.id} 
+                          <AppointmentCard
+                            key={appointment.id}
                             appointment={{
                               id: appointment.id,
                               notaryName: appointment.notary.name,
                               service: appointment.service.name,
                               date: appointment.scheduledTime,
                               time: new Date(appointment.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                              location: appointment.notary.notaryProfile ? 
-                                `${appointment.notary.notaryProfile.city} District, ${appointment.notary.notaryProfile.zip} Sector` : 
-                                appointment.notes || 'Location not specified',
+                              location: appointment.notary.notaryProfile?.city && appointment.notary.notaryProfile?.zip
+                                ? `${appointment.notary.notaryProfile.city}, ${appointment.notary.notaryProfile.zip}`
+                                : appointment.notary.notaryProfile?.address
+                                ? appointment.notary.notaryProfile.address
+                                : appointment.notes || 'Location not specified',
                               status: appointment.status,
                               cost: appointment.totalCost,
                               reviewComment: appointment.reviews?.[0]?.comment,
@@ -229,17 +231,19 @@ export default function CustomerAppointmentsPage() {
                     <div className="space-y-4">
                       {pastAppointments.length > 0 ? (
                         pastAppointments.map((appointment) => (
-                          <AppointmentCard 
-                            key={appointment.id} 
+                          <AppointmentCard
+                            key={appointment.id}
                             appointment={{
                               id: appointment.id,
                               notaryName: appointment.notary.name,
                               service: appointment.service.name,
                               date: appointment.scheduledTime,
                               time: new Date(appointment.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                              location: appointment.notary.notaryProfile ? 
-                                `${appointment.notary.notaryProfile.city} District, ${appointment.notary.notaryProfile.zip} Sector` : 
-                                appointment.notes || 'Location not specified',
+                              location: appointment.notary.notaryProfile?.city && appointment.notary.notaryProfile?.zip
+                                ? `${appointment.notary.notaryProfile.city}, ${appointment.notary.notaryProfile.zip}`
+                                : appointment.notary.notaryProfile?.address
+                                ? appointment.notary.notaryProfile.address
+                                : appointment.notes || 'Location not specified',
                               status: appointment.status,
                               cost: appointment.totalCost,
                               rated: appointment.reviews && appointment.reviews.length > 0,
@@ -247,8 +251,8 @@ export default function CustomerAppointmentsPage() {
                               reviewComment: appointment.reviews?.[0]?.comment,
                             }}
                             onReview={
-                              (!appointment.reviews || appointment.reviews.length === 0) 
-                                ? (_id: string | number, rating: number, comment: string) => handleReviewSubmit(appointment.id, rating, comment) 
+                              (appointment.status === 'COMPLETED' && (!appointment.reviews || appointment.reviews.length === 0))
+                                ? (_id: string | number, rating: number, comment: string) => handleReviewSubmit(appointment.id, rating, comment)
                                 : undefined
                             }
                           />
